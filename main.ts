@@ -75,7 +75,9 @@ parser.on("data", (data: string) => {
 
 // 一定間隔でデータを送信
 setInterval(() => {
-  temperatureVoltage = Math.random() * 11;
+  const randomIndex = Math.floor(Math.random() * 3);
+  temperatureVoltage = [79, 80, 78][randomIndex];
+  oilPressureVoltage = [8.3, 8.4, 7.9][randomIndex];
   if (mainWindow && mainWindow.webContents) {
     mainWindow.webContents.send("sensor-data", {
       temperatureVoltage,
