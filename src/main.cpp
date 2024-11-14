@@ -3,11 +3,17 @@
 #include <Adafruit_ADS1X15.h>
 #include <cmath> // log関数を使用
 #include <M5GFX.h>
-#include "LuxManager.h"
+#include "LuxManager.h" // 照度によって画面の明るさを調整
+#include "GraphManager.h" // 油圧グラフ用に独自実装
+
+// M5Stack CoreS3 LCD
+const int SPRITE_WIDTH = 320;
+const int SPRITE_HEIGHT = 40;
 
 M5GFX display;
 M5Canvas canvas(&display);
 LuxManager luxManager;
+GraphManager graphManager(canvas, SPRITE_WIDTH, SPRITE_HEIGHT);
 
 const uint32_t MAIN_BACKGROUND_COLOR = 0x18E3;
 
@@ -25,9 +31,6 @@ const float R25 = 10000.0;              // 25℃でのサーミスタの抵抗�
 const float B_CONSTANT = 3380.0;        // サーミスタのB定数
 const float T25 = 298.15;               // 25℃の絶対温度 (K)
 const float REFERENCE_RESISTOR = 10000.0; // 分圧回路の基準抵抗値 (10kΩ)
-
-const int SPRITE_WIDTH = 320;           // スプライトの幅
-const int SPRITE_HEIGHT = 40;           // スプライトの高さ
 
 float pressureValues[MAX_PRESSURE_SAMPLES] = {0};
 float tempValues[MAX_TEMP_SAMPLES] = {0};
@@ -69,24 +72,6 @@ void initializeGraphData(float graphData[], int width, int height) {
   }
 }
 
-// 折れ線グラフを描画
-void drawScrollingLineGraph(float newValue, float graphData[], int width, int height) {
-  canvas.createSprite(width, height);
-  float scaledValue = height - ((newValue / 9.9) * height);
-
-  for (int i = 0; i < width - 1; i++) {
-    graphData[i] = graphData[i + 1];
-  }
-  graphData[width - 1] = scaledValue;
-
-  canvas.fillSprite(BLACK);
-  for (int i = 1; i < width; i++) {
-    float startValue = 9.9 - (graphData[i - 1] / height) * 9.9;
-    uint16_t color = (startValue <= 2.0) ? 0xBDF7 : (startValue >= 8.0) ? RED : WHITE;
-    canvas.drawLine(i - 1, graphData[i - 1], i, graphData[i], color);
-  }
-  canvas.pushSprite(0, 200);
-}
 
 // テキスト中央配置X座標計算
 int16_t calculateCenteredX(int16_t spriteWidth, const char* text, M5Canvas& canvas) {
@@ -146,9 +131,9 @@ void renderHeaders() {
 }
 
 void setup() {
-  Serial.println("start!");
   M5.begin();  // M5Stackの初期化
   M5.Lcd.fillScreen(BLACK);
+  Serial.println("start!");
   pinMode(9, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
   Wire.begin(9, 8);  // SDA: 9, SCL: 8
@@ -165,10 +150,10 @@ void setup() {
   }
 
   display.init();
+  display.fillScreen(MAIN_BACKGROUND_COLOR);
   display.setRotation(1);
   display.setColorDepth(24);
   display.setTextFont(8);
-  display.fillScreen(MAIN_BACKGROUND_COLOR);
 
   renderHeaders();
   initializeGraphData(graphData, SPRITE_WIDTH, SPRITE_HEIGHT);
@@ -197,7 +182,7 @@ void loop() {
     updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
 
     lastUpdateTime = currentMillis;
-    drawScrollingLineGraph(pressureAverage, graphData, SPRITE_WIDTH, SPRITE_HEIGHT);
+    graphManager.drawScrollingLineGraph(pressureAverage);
   }
 
   if (currentMillis - lastSampleTime >= UPDATE_INTERVAL) {
