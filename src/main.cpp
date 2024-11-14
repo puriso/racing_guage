@@ -65,14 +65,6 @@ float calculateAverage(float values[], int size) {
   return sum / size;
 }
 
-// グラフデータ初期化
-void initializeGraphData(float graphData[], int width, int height) {
-  for (int i = 0; i < width; i++) {
-    graphData[i] = height;  // 初期値
-  }
-}
-
-
 // テキスト中央配置X座標計算
 int16_t calculateCenteredX(int16_t spriteWidth, const char* text, M5Canvas& canvas) {
   return (spriteWidth - canvas.textWidth(text)) / 2;
@@ -155,8 +147,7 @@ void setup() {
   display.setColorDepth(24);
   display.setTextFont(8);
 
-  renderHeaders();
-  initializeGraphData(graphData, SPRITE_WIDTH, SPRITE_HEIGHT);
+  graphManager.initializeGraphData();  // グラフデータの初期化
 }
 
 void loop() {
