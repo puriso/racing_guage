@@ -94,7 +94,7 @@ int16_t calculateCenteredX(int16_t spriteWidth, const char* text, M5Canvas& canv
 }
 
 // 表示とログ更新
-void updateDisplayAndLog(float pressureAvg, float tempAvg, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater) {
+void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater) {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setTextFont(8);
@@ -110,21 +110,27 @@ void updateDisplayAndLog(float pressureAvg, float tempAvg, float oilVoltage, flo
   snprintf(text, sizeof(text), "%.1f", pressureAvg);
   canvas.setCursor(calculateCenteredX(160, text, canvas), 72);
   canvas.printf("%s", text);
-
+  // 油圧の単位を表示
   canvas.setTextFont(&Font0);
   canvas.setCursor(calculateCenteredX(160, "O.PRS / BAR", canvas), 122);
   canvas.printf("O.PRS / BAR");
   canvas.pushSprite(0, 0);
+   canvas.setCursor(8, 185);
+  canvas.printf("%s", "O.PRS / Graph");
 
   // 水温表示
-
   canvas.createSprite(160, 200);
-  uint16_t tempColor = (tempAvg > 97.9) ? RED : MAIN_BACKGROUND_COLOR;
+  uint16_t tempColor = (waterTempAverage > 97.9) ? RED : MAIN_BACKGROUND_COLOR;
   canvas.fillScreen(tempColor);
-  snprintf(text, sizeof(text), "%.0f", tempAvg);
-  canvas.setCursor(calculateCenteredX(160, text, canvas), 72);
+  canvas.setTextColor(WHITE, tempColor);
+  snprintf(text, sizeof(text), "%.0f", waterTempAverage);
+    char tempText[10];
+  snprintf(tempText, sizeof(tempText), "%.0f", waterTempAverage);
+  canvas.setCursor(calculateCenteredX(160, tempText, canvas), 72);
   canvas.setFont(&FreeSansBold24pt7b);
-  canvas.printf("%s", text);
+  canvas.printf("%s", tempText);
+  // 水温の単位を表示
+  canvas.setTextFont(&Font0);
   canvas.setCursor(calculateCenteredX(160, "W.TEMP / Celsius", canvas), 122);
   canvas.printf("W.TEMP / Celsius");
   canvas.pushSprite(160, 0);
