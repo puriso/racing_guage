@@ -113,17 +113,9 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVol
   canvas.pushSprite(160, 0);
 }
 
-// ヘッダー描画
-void renderHeaders() {
-  display.setTextColor(WHITE);
-  display.setCursor(8, 24);
-  display.setTextSize(1);
-  display.setTextFont(0);
-  display.setTextColor(0x7BEF, BLACK);
-}
-
 void setup() {
   M5.begin();  // M5Stackの初期化
+  M5.Lcd.clear();
   M5.Lcd.fillScreen(BLACK);
   Serial.println("start!");
   pinMode(9, INPUT_PULLUP);
@@ -145,7 +137,6 @@ void setup() {
   display.fillScreen(MAIN_BACKGROUND_COLOR);
   display.setRotation(1);
   display.setColorDepth(24);
-  display.setTextFont(8);
 
   graphManager.initializeGraphData();  // グラフデータの初期化
 }
