@@ -6,14 +6,19 @@
 #include "LuxManager.h" // 照度によって画面の明るさを調整
 #include "GraphManager.h" // 油圧グラフ用に独自実装
 
-// M5Stack CoreS3 LCD
-const int SPRITE_WIDTH = 320;
-const int SPRITE_HEIGHT = 40;
+const bool IS_DEBUG = false; // デバッグモード
+
+// LCDの幅と高さを定数として定義
+const int LCD_WIDTH = 320;  // M5Stack CoreS3のLCD幅
+const int LCD_HEIGHT = 240; // M5Stack CoreS3のLCD高さ
 
 M5GFX display;
 M5Canvas canvas(&display);
 LuxManager luxManager;
-GraphManager graphManager(canvas, SPRITE_WIDTH, SPRITE_HEIGHT);
+
+const int GRAPH_WIDTH = 320;
+const int GRAPH_HEIGHT = 40;
+GraphManager graphManager(canvas, GRAPH_WIDTH, GRAPH_HEIGHT);
 
 const uint32_t MAIN_BACKGROUND_COLOR = 0x18E3;
 
@@ -37,7 +42,7 @@ float tempValues[MAX_TEMP_SAMPLES] = {0};
 int pressureIndex = 0;
 int tempIndex = 0;
 
-float graphData[SPRITE_WIDTH] = { 0 };  // グラフのデータを保持する配列
+float graphData[GRAPH_WIDTH] = { 0 };  // グラフのデータを保持する配列
 
 // 電圧計算関数
 float calculateVoltage(int16_t rawADC) {
@@ -53,7 +58,8 @@ float calculateOilPressure(float voltage) {
 float calculateWaterTemp(float voltage) {
   float resistance = REFERENCE_RESISTOR * ((SUPPLY_VOLTAGE / voltage) - 1);
   float tempK = B_CONSTANT / (log(resistance / R25) + B_CONSTANT / T25);
-  return tempK - 273.15;  // 摂氏温度
+  // nanの場合は200度として扱う
+  return isnan(tempK) ? 200 : tempK - 273.15;  // 摂氏に変換
 }
 
 // 平均計算関数
@@ -65,9 +71,32 @@ float calculateAverage(float values[], int size) {
   return sum / size;
 }
 
-// テキスト中央配置X座標計算
-int16_t calculateCenteredX(int16_t spriteWidth, const char* text, M5Canvas& canvas) {
-  return (spriteWidth - canvas.textWidth(text)) / 2;
+// 文字間隔を考慮した中央配置用X座標計算
+int16_t calculateCenteredX(int16_t spriteWidth, const char* text, int spacing = 0, M5Canvas& canvas = canvas) {
+  int totalWidth = 0;
+
+  for (int i = 0; text[i] != '\0'; i++) {
+    totalWidth += canvas.textWidth(String(text[i]));
+    if (text[i + 1] != '\0') { // 最後の文字以外は間隔を加算
+      totalWidth += spacing;
+    }
+  }
+
+  return (spriteWidth - totalWidth) / 2;
+}
+
+// メインの数値表示用を文字間隔を考慮して中央配置するテキスト描画
+void drawMainValue(int spriteWidth, const char* text, int spacing, int y) {
+  int16_t startX = calculateCenteredX(spriteWidth, text, spacing, canvas); // 修正した中央配置X座標計算
+  int16_t cursorX = startX; // 描画開始位置を設定
+
+  for (int i = 0; text[i] != '\0'; i++) {
+    canvas.drawChar(text[i], cursorX, y); // 文字を描画
+
+    if (text[i + 1] != '\0') { // 最後の文字以外は間隔を加算
+      cursorX += canvas.textWidth(String(text[i])) + spacing;
+    }
+  }
 }
 
 // 表示とログ更新
@@ -85,14 +114,13 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVol
 
   char text[10];
   snprintf(text, sizeof(text), "%.1f", pressureAvg);
-  canvas.setCursor(calculateCenteredX(160, text, canvas), 72);
-  canvas.printf("%s", text);
+  drawMainValue(160, text, 5, 100);
   // 油圧の単位を表示
   canvas.setTextFont(&Font0);
-  canvas.setCursor(calculateCenteredX(160, "O.PRS / BAR", canvas), 122);
+  canvas.setCursor(calculateCenteredX(160, "O.PRS / BAR"), 136);
   canvas.printf("O.PRS / BAR");
   canvas.pushSprite(0, 0);
-   canvas.setCursor(8, 185);
+  canvas.setCursor(8, 185);
   canvas.printf("%s", "O.PRS / Graph");
 
   // 水温表示
@@ -100,28 +128,36 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVol
   uint16_t tempColor = (waterTempAverage > 97.9) ? RED : MAIN_BACKGROUND_COLOR;
   canvas.fillScreen(tempColor);
   canvas.setTextColor(WHITE, tempColor);
-  snprintf(text, sizeof(text), "%.0f", waterTempAverage);
-    char tempText[10];
+  char tempText[10];
   snprintf(tempText, sizeof(tempText), "%.0f", waterTempAverage);
-  canvas.setCursor(calculateCenteredX(160, tempText, canvas), 72);
   canvas.setFont(&FreeSansBold24pt7b);
-  canvas.printf("%s", tempText);
+  drawMainValue(160, tempText, 5, 100);
   // 水温の単位を表示
   canvas.setTextFont(&Font0);
-  canvas.setCursor(calculateCenteredX(160, "W.TEMP / Celsius", canvas), 122);
+  canvas.setCursor(calculateCenteredX(160, "W.TEMP / Celsius"), 136);
   canvas.printf("W.TEMP / Celsius");
   canvas.pushSprite(160, 0);
+
+  if (IS_DEBUG) {
+    Serial.printf("Oil Pressure: %.2f kPa | Water Temp: %.2f C\n", pressureAvg, waterTempAverage);
+    Serial.printf("Oil Voltage: %.2f V | Water Voltage: %.2f V\n", oilVoltage, waterVoltage);
+    Serial.printf("Raw Oil: %d | Raw Water: %d\n", rawOil, rawWater);
+  }
 }
 
 void setup() {
+  Serial.begin(115200);
+
   M5.begin();  // M5Stackの初期化
   M5.Lcd.clear();
   M5.Lcd.fillScreen(BLACK);
+  display.init();
+  display.setColorDepth(24);
   Serial.println("start!");
+
   pinMode(9, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
   Wire.begin(9, 8);  // SDA: 9, SCL: 8
-  Serial.begin(115200);
 
   if (!ads.begin()) {
     Serial.println("Failed to initialize ADS1015! Check connections.");
@@ -132,11 +168,6 @@ void setup() {
     M5.Lcd.print("Failed to initialize ADS1015! Check connections.");
     while (1);  // 初期化失敗時は無限ループ
   }
-
-  display.init();
-  display.fillScreen(MAIN_BACKGROUND_COLOR);
-  display.setRotation(1);
-  display.setColorDepth(24);
 
   graphManager.initializeGraphData();  // グラフデータの初期化
 }
@@ -174,7 +205,9 @@ void loop() {
     brightness = constrain(brightness, 10, 255);
     M5.Lcd.setBrightness(brightness >= 70 ? brightness : 70);
 
-    Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
+    if (IS_DEBUG) {
+      Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
+    }
     lastSampleTime = currentMillis;
   }
   delay(1);
