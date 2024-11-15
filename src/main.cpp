@@ -154,6 +154,7 @@ void setup() {
   M5.Lcd.clear();
   M5.Lcd.fillScreen(BLACK);
   display.init();
+  display.setRotation(3);
   display.setColorDepth(24);
   Serial.println("start!");
 
