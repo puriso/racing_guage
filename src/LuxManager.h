@@ -3,9 +3,7 @@
 
 #include <M5CoreS3.h>
 
-const int sampleInterval = 500; // Nm秒ごとにサンプリング
 const int sampleCount = 20;      // N回分のサンプルを取得して平均を計算
-const float initialLux = 200.0;  // 初期照度
 
 class LuxManager {
 private:
@@ -13,16 +11,21 @@ private:
     int currentSample;
 
 public:
-    LuxManager() : currentSample(0) {
+    void initializeLuxSamples() {
         for (int i = 0; i < sampleCount; i++) {
-            luxSamples[i] = initialLux; // 初期値を300lxで埋める
+            luxSamples[i] = CoreS3.Ltr553.getAlsValue();
         }
     }
 
     void updateLuxSamples() {
         float currentLux = CoreS3.Ltr553.getAlsValue(); // LTR-553から照度を取得
+        // 末尾に追加
+        luxSamples[currentSample] = currentLux;
+
         luxSamples[currentSample] = currentLux;
         currentSample = (currentSample + 1) % sampleCount; // リングバッファ
+
+        Serial.printf("Lux Sample %d: %.2f lx\n", currentSample, currentLux);
     }
 
     float calculateAverageLux() {

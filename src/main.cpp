@@ -44,6 +44,8 @@ int tempIndex = 0;
 
 float graphData[GRAPH_WIDTH] = { 0 };  // グラフのデータを保持する配列
 
+Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
+
 // 電圧計算関数
 float calculateVoltage(int16_t rawADC) {
   return (rawADC * 6.144) / 2047.0;  // ADS1015の±6.144V設定を使用
@@ -155,6 +157,9 @@ void setup() {
   display.setColorDepth(24);
   Serial.println("start!");
 
+  // Bluetoothを無効化
+  btStop();
+
   pinMode(9, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
   Wire.begin(9, 8);  // SDA: 9, SCL: 8
@@ -169,7 +174,11 @@ void setup() {
     while (1);  // 初期化失敗時は無限ループ
   }
 
+  CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
+  device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
+
   graphManager.initializeGraphData();  // グラフデータの初期化
+  luxManager.initializeLuxSamples();  // 照度サンプルの初期化
 }
 
 void loop() {
@@ -198,17 +207,22 @@ void loop() {
     graphManager.drawScrollingLineGraph(pressureAverage);
   }
 
-  if (currentMillis - lastSampleTime >= UPDATE_INTERVAL) {
+  if (currentMillis - lastSampleTime >= 500) {
     luxManager.updateLuxSamples();
     float averageLux = luxManager.calculateAverageLux();
-    int brightness = map(averageLux, 50, 250, 80, 255);
-    brightness = constrain(brightness, 10, 255);
-    M5.Lcd.setBrightness(brightness >= 70 ? brightness : 70);
+    // 照度によって画面の明るさを調整
+    // 引数: 現在の照度, 最小照度, 最大照度, 最小明るさ, 最大明るさ
+    int brightness = map(averageLux, 0, 250, 60, 255);
+    brightness = constrain(brightness, 30, 255);
+
+    // 滑らかに明るさを変更
+    if (M5.Lcd.getBrightness() != brightness) { M5.Lcd.setBrightness(brightness); }
 
     if (IS_DEBUG) {
       Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
+      Serial.printf("---------------");
     }
     lastSampleTime = currentMillis;
   }
-  delay(1);
+  delay(10);
 }
