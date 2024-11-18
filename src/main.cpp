@@ -167,11 +167,11 @@ void setup() {
 
   if (!ads.begin()) {
     Serial.println("Failed to initialize ADS1015! Check connections.");
-    M5.Lcd.setCursor(8, 50);
-    M5.Lcd.setTextFont(2);
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setTextColor(RED);
-    M5.Lcd.print("Failed to initialize ADS1015! Check connections.");
+    display.setCursor(8, 50);
+    display.setTextFont(2);
+    display.setTextSize(1);
+    display.setTextColor(RED);
+    display.print("Failed to initialize ADS1015! Check connections.");
     while (1);  // 初期化失敗時は無限ループ
   }
 
