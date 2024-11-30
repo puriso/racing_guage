@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+IndentWidth: 2  # インデントを2スペースに設定
+TabWidth: 2     # タブ幅も2スペースに設定
+UseTab: Never   # タブをスペースに変換
+ColumnLimit: 124  # 一行の文字数制限
+BreakBeforeBraces: Allman  # 波括弧のスタイル（必要に応じて変更）
