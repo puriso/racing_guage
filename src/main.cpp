@@ -41,6 +41,8 @@ float pressureValues[MAX_PRESSURE_SAMPLES] = {0};
 float maxPressureValue = 0;
 float tempValues[MAX_TEMP_SAMPLES] = {0};
 float maxTempValue = 0;
+bool isPressureOverThreshold = false;
+bool isTempOverThreshold = false;
 int pressureIndex = 0;
 int tempIndex = 0;
 
@@ -232,7 +234,7 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVol
 
   // 水温表示
   canvas.createSprite(160, 200);
-  drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 95, RED, "Celsius", "WATER.T", maxTempValue, 5.0);
+  drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0);
   canvas.pushSprite(160, 0);
 
   if (IS_DEBUG) {
@@ -252,6 +254,7 @@ void setup() {
   display.setRotation(3);
   display.setColorDepth(24);
   Serial.println("start!");
+  M5.Speaker.begin();
 
   // Bluetoothを無効化
   btStop();
@@ -273,8 +276,8 @@ void setup() {
   CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
   device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
 
-  graphManager.initializeGraphData();  // グラフデータの初期化
   luxManager.initializeLuxSamples();  // 照度サンプルの初期化
+  graphManager.initializeGraphData();  // グラフデータの初期化
 }
 
 void loop() {
@@ -299,6 +302,12 @@ void loop() {
     maxPressureValue = max(maxPressureValue, pressureAverage); // 最大油圧値を更新
     maxTempValue = max(maxTempValue, tempAverage); // 最大水温値を更新
 
+    if (!isTempOverThreshold && tempAverage >= 98) {
+      isTempOverThreshold = true;
+      M5.Speaker.setVolume(100);
+      M5.Speaker.tone(3000, 2000);
+    }
+
     updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
 
     lastUpdateTime = currentMillis;
@@ -311,7 +320,7 @@ void loop() {
     // 照度によって画面の明るさを調整
     // 引数: 現在の照度, 最小照度, 最大照度, 最小明るさ, 最大明るさ
     int brightness = map(averageLux, 0, 250, 60, 255);
-    brightness = constrain(brightness, 10, 230);
+    brightness = constrain(brightness, 10, 150);
 
     // 滑らかに明るさを変更
     if (M5.Lcd.getBrightness() != brightness) { M5.Lcd.setBrightness(brightness); }
