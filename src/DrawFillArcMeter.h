@@ -108,7 +108,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   char valueText[10];
   if (useDecimal)
   {
-    snprintf(valueText, sizeof(valueText), "%.1f", round(value));
+    snprintf(valueText, sizeof(valueText), "%.1f", value);
   }
   else
   {

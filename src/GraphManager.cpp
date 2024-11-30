@@ -52,30 +52,6 @@ void GraphManager::drawScrollingLineGraph(float newValue)
     }
   }
 
-  // ラベルを描画（折れ線グラフの後に描画）
-  for (int value : {2, 5, 8})
-  {
-    int y = _height - ((_height / 9.9) * value);  // 値に対応する高さを計算
-
-    // 数字ラベルを描画（位置を自動調整）
-    char label[5];
-    snprintf(label, sizeof(label), "%d", value);
-    _canvas.setTextFont(1);
-    _canvas.setTextColor(WHITE, 0x18E3);
-
-    int labelY = y - padding - 8;  // ラベルを線の上に配置
-    if (labelY < 0)
-    {
-      labelY = y + padding;  // 画面の上端を超える場合は線の下に配置
-    }
-    else if (labelY + 8 > _height)
-    {
-      labelY = y - padding - 8;  // 下端の場合も線の上
-    }
-    _canvas.setCursor(2, labelY);  // ラベル位置を設定
-    _canvas.print(label);
-  }
-
   // スプライトを画面に描画
   _canvas.pushSprite(0, 200);
 }
