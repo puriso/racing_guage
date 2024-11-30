@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <M5CoreS3.h>
 #include <Adafruit_ADS1X15.h>
+#include <algorithm>
 #include <cmath> // log関数を使用
 #include <M5GFX.h>
 #include "LuxManager.h" // 照度によって画面の明るさを調整
@@ -51,17 +52,17 @@ float graphData[GRAPH_WIDTH] = { 0 };  // グラフのデータを保持する�
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
 // 電圧計算関数
-float calculateVoltage(int16_t rawADC) {
+auto calculateVoltage(int16_t rawADC) -> float {
   return (rawADC * 6.144) / 2047.0;  // ADS1015の±6.144V設定を使用
 }
 
 // 油圧計算
-float calculateOilPressure(float voltage) {
+auto calculateOilPressure(float voltage) -> float {
   return (voltage > 0.5) ? 250 * (voltage - 0.5) / 100.0 : 0.0;  // kPaをMpa換算
 }
 
 // サーミスタの電圧から水温を計算
-float calculateWaterTemp(float voltage) {
+auto calculateWaterTemp(float voltage) -> float {
   float resistance = REFERENCE_RESISTOR * ((SUPPLY_VOLTAGE / voltage) - 1);
   float tempK = B_CONSTANT / (log(resistance / R25) + B_CONSTANT / T25);
   // nanの場合は200度として扱う
@@ -69,7 +70,7 @@ float calculateWaterTemp(float voltage) {
 }
 
 // 平均計算関数
-float calculateAverage(float values[], int size) {
+auto calculateAverage(const float values[], int size) -> float {
   float sum = 0;
   for (int i = 0; i < size; i++) {
     sum += values[i];
@@ -78,7 +79,7 @@ float calculateAverage(float values[], int size) {
 }
 
 // 文字間隔を考慮した中央配置用X座標計算
-int16_t calculateCenteredX(int16_t spriteWidth, const char* text, int spacing = 0, M5Canvas& canvas = canvas) {
+auto calculateCenteredX(int16_t spriteWidth, const char* text, int spacing = 0, M5Canvas& canvas = canvas) -> int16_t {
   int totalWidth = 0;
 
   for (int i = 0; text[i] != '\0'; i++) {
@@ -130,7 +131,7 @@ void drawFillArcMeter(
     const uint16_t MAX_VALUE_COLOR = RED;            // 最大値の印の色
 
     // 最大値を更新
-    if (value > maxRecordedValue) { maxRecordedValue = value; }
+    maxRecordedValue = std::max(value, maxRecordedValue);
 
     // 背景を塗りつぶし
     canvas.fillScreen(BACKGROUND_COLOR);
@@ -139,7 +140,7 @@ void drawFillArcMeter(
     canvas.fillArc(CENTER_X_CORRECtED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
 
     // レッドゾーンの背景を描画
-    float redZoneStartAngle = -270 + (threshold - minValue) / (maxValue - minValue) * 270.0;
+    float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
     if (value >= threshold) {
         canvas.fillArc(CENTER_X_CORRECtED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH - 5, RADIUS - ARC_WIDTH, redZoneStartAngle, 0, YELLOW);
     } else {
@@ -149,24 +150,24 @@ void drawFillArcMeter(
     // 現在の値に対応する部分を塗りつぶし
     if (value >= minValue && value <= maxValue * 1.1) {
         uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
-        float valueAngle = -270 + (value - minValue) / (maxValue - minValue) * 270.0;
+        float valueAngle = -270 + ((value - minValue) / (maxValue - minValue) * 270.0);
         canvas.fillArc(CENTER_X_CORRECtED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
     }
 
     // 最大値の印を表示
     if (maxRecordedValue > minValue && maxRecordedValue <= maxValue) {
-      float maxValueAngle = 270 - (270.0 / (maxValue - minValue)) * (maxRecordedValue - minValue); // 最大値を角度に変換
+      float maxValueAngle = 270 - ((270.0 / (maxValue - minValue)) * (maxRecordedValue - minValue)); // 最大値を角度に変換
 
       // 三角形の先端（外側）
-      float maxMarkX = CENTER_X_CORRECtED + cos(radians(maxValueAngle)) * (RADIUS + 5);
-      float maxMarkY = CENTER_Y_CORRECTED - sin(radians(maxValueAngle)) * (RADIUS + 5);
+      float maxMarkX = CENTER_X_CORRECtED + (cos(radians(maxValueAngle)) * (RADIUS + 5));
+      float maxMarkY = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle)) * (RADIUS + 5));
 
       // 小さな三角形の基点（外側に配置）
-      float baseMarkX1 = CENTER_X_CORRECtED + cos(radians(maxValueAngle + 3)) * (RADIUS + 8);
-      float baseMarkY1 = CENTER_Y_CORRECTED - sin(radians(maxValueAngle + 3)) * (RADIUS + 8);
+      float baseMarkX1 = CENTER_X_CORRECtED + (cos(radians(maxValueAngle + 3)) * (RADIUS + 8));
+      float baseMarkY1 = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle + 3)) * (RADIUS + 8));
 
-      float baseMarkX2 = CENTER_X_CORRECtED + cos(radians(maxValueAngle - 3)) * (RADIUS + 8);
-      float baseMarkY2 = CENTER_Y_CORRECTED - sin(radians(maxValueAngle - 3)) * (RADIUS + 8);
+      float baseMarkX2 = CENTER_X_CORRECtED + (cos(radians(maxValueAngle - 3)) * (RADIUS + 8));
+      float baseMarkY2 = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle - 3)) * (RADIUS + 8));
 
       canvas.fillTriangle(
           maxMarkX, maxMarkY,     // 三角形の先端（外側の位置）
@@ -179,28 +180,28 @@ void drawFillArcMeter(
     // 目盛ラベルと目盛り線を描画
     int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
     for (float i = 0; i <= tickCount - 1; i += 1) {
-        float scaledValue = minValue + tickStep * i;
-        float angle = 270 - (270.0 / (tickCount - 1)) * i; // 開始位置のロジックを維持
+        float scaledValue = minValue + (tickStep * i);
+        float angle = 270 - ((270.0 / (tickCount - 1)) * i); // 開始位置のロジックを維持
         float rad = radians(angle);
 
-        int lineX1 = CENTER_X_CORRECtED + cos(rad) * (RADIUS - ARC_WIDTH - 10);
-        int lineY1 = CENTER_Y_CORRECTED - sin(rad) * (RADIUS - ARC_WIDTH - 10);
-        int lineX2 = CENTER_X_CORRECtED + cos(rad) * (RADIUS - ARC_WIDTH - 5);
-        int lineY2 = CENTER_Y_CORRECTED - sin(rad) * (RADIUS - ARC_WIDTH - 5);
+        int lineX1 = CENTER_X_CORRECtED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
+        int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
+        int lineX2 = CENTER_X_CORRECtED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
+        int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
 
         canvas.drawLine(lineX1, lineY1, lineX2, lineY2, WHITE);
 
         // 整数値の目盛ラベルを描画
         if (fmod(scaledValue, 1.0) == 0) {
-            int labelX = CENTER_X_CORRECtED + cos(rad) * (RADIUS - ARC_WIDTH - 15);
-            int labelY = CENTER_Y_CORRECTED - sin(rad) * (RADIUS - ARC_WIDTH - 15);
+            int labelX = CENTER_X_CORRECtED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
+            int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
 
             char labelText[6];
             snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
 
             canvas.setTextFont(1);
             canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-            canvas.setCursor(labelX - canvas.textWidth(labelText) / 2, labelY - 4);
+            canvas.setCursor(labelX - (canvas.textWidth(labelText) / 2), labelY - 4);
             canvas.print(labelText);
         }
     }
@@ -216,7 +217,7 @@ void drawFillArcMeter(
     canvas.setFont(&FreeSansBold24pt7b);
     int valueX = CENTER_X_CORRECtED + RADIUS + 10;
     int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
-    canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - canvas.fontHeight() / 2);
+    canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
     canvas.print(valueText);
 
     // 単位とメーター名を表示
@@ -225,7 +226,7 @@ void drawFillArcMeter(
     canvas.setFont(&fonts::Font0);
     int labelX = CENTER_X_CORRECtED;
     int labelY = CENTER_Y_CORRECTED + RADIUS + 15;
-    canvas.setCursor(labelX - canvas.textWidth(combinedLabel) / 2, labelY);
+    canvas.setCursor(labelX - (canvas.textWidth(combinedLabel) / 2), labelY);
     canvas.print(combinedLabel);
 }
 
@@ -274,7 +275,8 @@ void setup() {
     display.setTextSize(1);
     display.setTextColor(RED);
     display.print("Failed to initialize ADS1015! Check connections.");
-    while (1);  // 初期化失敗時は無限ループ
+    while (1) {;  // 初期化失敗時は無限ループ
+}
   }
 
   CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
