@@ -226,8 +226,7 @@ void loop()
     float averageLux = luxManager.calculateAverageLux();
     // 照度によって画面の明るさを調整
     // 引数: 現在の照度, 最小照度, 最大照度, 最小明るさ, 最大明るさ
-    int brightness = map(averageLux, 0, 250, 60, 255);
-    brightness = constrain(brightness, 10, 150);
+    int brightness = map(averageLux, 0, 100, 50, 150);
 
     // 滑らかに明るさを変更
     if (M5.Lcd.getBrightness() != brightness)
@@ -237,8 +236,9 @@ void loop()
 
     if (IS_DEBUG)
     {
+      Serial.printf("-- LuxManager -------------");
       Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
-      Serial.printf("---------------");
+      Serial.printf("---------------------------");
     }
     lastSampleTime = currentMillis;
   }
