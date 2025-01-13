@@ -6,11 +6,19 @@
 #include <algorithm>
 #include <cmath>  // log関数を使用
 
-#include "GraphManager.h"  // 油圧グラフ用に独自実装
 #include "LuxManager.h"    // 照度によって画面の明るさを調整
 #include "DrawFillArcMeter.h"
+// #include "ShiftLamp.h"
 
-const bool IS_DEBUG = false;  // デバッグモード
+// 色設定 (18ビットカラー)
+const uint32_t COLOR_WHITE = M5.Lcd.color888(255, 255, 255); // 白
+const uint32_t COLOR_BLACK = M5.Lcd.color888(0, 0, 0);      // 黒
+const uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0); // オレンジ
+const uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);    // 黄
+const uint32_t COLOR_RED = M5.Lcd.color888(255, 0, 0);      // 赤
+                                                            //
+
+const bool IS_DEBUG = true;  // デバッグモード
 
 // LCDの幅と高さを定数として定義
 const int LCD_WIDTH = 320;   // M5Stack CoreS3のLCD幅
@@ -22,7 +30,6 @@ LuxManager luxManager;
 
 const int GRAPH_WIDTH = 320;
 const int GRAPH_HEIGHT = 40;
-GraphManager graphManager(canvas, GRAPH_WIDTH, GRAPH_HEIGHT);
 
 const uint32_t MAIN_BACKGROUND_COLOR = 0x18E3;
 
@@ -31,7 +38,7 @@ M5Canvas oilPressCanvas(&canvas);
 M5Canvas waterTempCanvas(&canvas);
 
 const float SUPPLY_VOLTAGE = 5.0;           // 基準電圧 (5V)
-const unsigned long UPDATE_INTERVAL = 100;  // 更新間隔（100ms）
+const unsigned long UPDATE_INTERVAL = 20;  // 更新間隔
 
 const int MAX_PRESSURE_SAMPLES = 1;  // 油圧のサンプル数
 const int MAX_TEMP_SAMPLES = 10;     // 水温のサンプル数
@@ -53,6 +60,88 @@ int tempIndex = 0;
 float graphData[GRAPH_WIDTH] = {0};  // グラフのデータを保持する配列
 
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
+
+void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
+{
+  // 背景クリア
+  canvas.fillSprite(COLOR_BLACK);
+
+  // バー位置・サイズ
+  const int barX = 20;     // バーの左端X座標
+  const int barY = 15;     // バーの上端Y座標
+  const int barW = 280;    // バーの幅
+  const int barH = 20;     // バーの高さ
+
+  // レッドゾーンの赤帯をメモリと数字の下に常時表示
+  {
+    const int rx = barX + (int)(barW * ((float)(9000 - 7000) / 2250.0f));  // 9000rpmの位置
+    const int ry = barY - 5;                                               // メモリと数字の下に配置
+    const int rw = barW - (rx - barX);                                     // 赤帯の幅
+    const int rh = 5;                                                      // 赤帯の高さ
+
+    canvas.fillRect(rx, ry, rw, rh, COLOR_RED);  // 赤帯の描画
+  }
+
+  // 外枠を白で描画
+  canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
+
+  // rpmを7000～9250にクランプ
+  if (rpm < 7000) rpm = 7000;
+  if (rpm > 9250) rpm = 9250;
+
+  // rpmに応じたバーの塗り分け
+  int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
+
+  if (rpm >= 9000)
+  {
+    // 赤（点滅: 明るい赤と暗い赤を交互に表示）
+    uint32_t color = blinkState ? COLOR_RED : M5.Lcd.color888(139, 0, 0);  // 暗い赤 (RGB: 139, 0, 0)
+    canvas.fillRect(barX, barY, w, barH, color);
+  }
+  else if (rpm >= 8800)
+  {
+    // 黄色
+    canvas.fillRect(barX, barY, w, barH, COLOR_YELLOW);
+  }
+  else
+  {
+    // 通常の白
+    canvas.fillRect(barX, barY, w, barH, COLOR_WHITE);
+  }
+
+  // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
+  const int infoX = barX + barW - 100;  // 右寄りに表示（バー右端から100px左）
+  const int infoY = barY + barH + 10;   // バーの下10pxの位置
+  canvas.setTextSize(1);                // 小さいフォントサイズ
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setCursor(barX, infoY);
+  canvas.printf("RPM: %d MAX_RPM: %d", rpm, maxRpm);
+
+  // メモリ（7000, 8000, 8500, 9000を表示）
+  canvas.setTextColor(COLOR_WHITE);
+  const int memValues[] = {7000, 8000, 8500, 9000};
+  const int memCount = sizeof(memValues) / sizeof(memValues[0]);
+
+  for (int i = 0; i < memCount; i++)
+  {
+    float ratio = (float)(memValues[i] - 7000) / 2250.0f;  // メモリの相対位置 (7000～9250)
+    int tickX   = barX + (int)(barW * ratio);              // メモリの位置
+    int tickY   = barY - 2;                                // メモリ位置 (バー上)
+
+    // メモリの点線
+    canvas.drawPixel(tickX, tickY, COLOR_WHITE);
+
+    // メモリの数字 ("7000", "8000", ..., "9000")
+    canvas.setCursor(tickX - 10, tickY - 12);
+    canvas.printf("%d", memValues[i]);
+
+    // 9000rpmのバー内区切り線（グレー）
+    if (memValues[i] == 9000)
+    {
+      canvas.drawLine(tickX, barY, tickX, (barY + barH - 1), M5.Lcd.color888(169, 169, 169));  // グレーの線 (RGB: 169, 169, 169)
+    }
+  }
+}
 
 // 電圧計算関数
 auto calculateVoltage(int16_t rawADC) -> float
@@ -125,14 +214,14 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVol
                          int16_t rawWater)
 {
   //// 油圧表示
-  canvas.createSprite(160, 200);
+  canvas.createSprite(160, 180);
   drawFillArcMeter(canvas, pressureAvg, 0.0, 10.0, 8.0, RED, "BAR", "OIL.P", maxPressureValue, 0.5, true);
-  canvas.pushSprite(0, 0);
+  canvas.pushSprite(0, 60);
 
   // 水温表示
-  canvas.createSprite(160, 200);
+  canvas.createSprite(160, 180);
   drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0, false);
-  canvas.pushSprite(160, 0);
+  canvas.pushSprite(160, 60);
 
   if (IS_DEBUG)
   {
@@ -154,6 +243,7 @@ void setup()
   display.setColorDepth(24);
   Serial.println("start!");
   M5.Speaker.begin();
+  M5.Imu.begin();
 
   // Bluetoothを無効化
   btStop();
@@ -175,14 +265,16 @@ void setup()
       ;  // 初期化失敗時は無限ループ
     }
   }
+  // initializeShiftLamp(canvas);
 
   CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
   device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
 
   luxManager.initializeLuxSamples();   // 照度サンプルの初期化
-  graphManager.initializeGraphData();  // グラフデータの初期化
 }
 
+bool isBlink = false;
+int maxRpm = 0;
 void loop()
 {
   static unsigned long lastSampleTime = 0;
@@ -217,8 +309,19 @@ void loop()
     updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
 
     lastUpdateTime = currentMillis;
-    graphManager.drawScrollingLineGraph(pressureAverage);
+
+    canvas.createSprite(320, 60);
+    // RPM
+    int rpm = pressureAverage * 1000;
+    isBlink = !isBlink;
+    if (rpm > maxRpm)
+    {
+      maxRpm = rpm;
+    }
+    drawRpmBar(canvas, rpm, maxRpm, isBlink);
+    canvas.pushSprite(0, 0); // 表示位置 (x, y)
   }
+
 
   if (currentMillis - lastSampleTime >= 500)
   {
