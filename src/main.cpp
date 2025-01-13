@@ -72,6 +72,9 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   const int barW = 280;    // バーの幅
   const int barH = 20;     // バーの高さ
 
+  // バー背景
+  canvas.fillRect(barX + 1, barY + 1, barW - 2, barH - 2, 0x18E3);
+
   // レッドゾーンの赤帯をメモリと数字の下に常時表示
   {
     const int rx = barX + (int)(barW * ((float)(9000 - 7000) / 2250.0f));  // 9000rpmの位置
@@ -89,25 +92,21 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   if (rpm < 7000) rpm = 7000;
   if (rpm > 9250) rpm = 9250;
 
-  // rpmに応じたバーの塗り分け
-  int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
 
-  if (rpm >= 9000)
+  // rpmに応じたバーの塗り分け
+  uint32_t color = COLOR_WHITE;
+  if (rpm >= 8800)
   {
     // 赤（点滅: 明るい赤と暗い赤を交互に表示）
-    uint32_t color = blinkState ? COLOR_RED : M5.Lcd.color888(139, 0, 0);  // 暗い赤 (RGB: 139, 0, 0)
-    canvas.fillRect(barX, barY, w, barH, color);
+    color = blinkState ? COLOR_RED : M5.Lcd.color888(139, 0, 0);  // 暗い赤 (RGB: 139, 0, 0)
   }
-  else if (rpm >= 8800)
+  else if (rpm >= 8600)
   {
-    // 黄色
-    canvas.fillRect(barX, barY, w, barH, COLOR_YELLOW);
+    color = COLOR_YELLOW;
   }
-  else
-  {
-    // 通常の白
-    canvas.fillRect(barX, barY, w, barH, COLOR_WHITE);
-  }
+
+  int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
+  canvas.fillRect(barX + 1, barY + 1, w - 2, barH - 2, color);
 
   // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
   const int infoX = barX + barW - 100;  // 右寄りに表示（バー右端から100px左）
