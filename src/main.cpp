@@ -86,27 +86,30 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   }
 
   // 外枠を白で描画
-  canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
+  //canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
 
   // rpmを7000～9250にクランプ
   if (rpm < 7000) rpm = 7000;
   if (rpm > 9250) rpm = 9250;
 
-
   // rpmに応じたバーの塗り分け
   uint32_t color = COLOR_WHITE;
   if (rpm >= 8800)
   {
-    // 赤（点滅: 明るい赤と暗い赤を交互に表示）
-    color = blinkState ? COLOR_RED : M5.Lcd.color888(139, 0, 0);  // 暗い赤 (RGB: 139, 0, 0)
+    // 点滅
+    color = blinkState ? M5.Lcd.color888(173, 216, 230) : M5.Lcd.color888(70, 130, 180);
   }
   else if (rpm >= 8600)
   {
-    color = COLOR_YELLOW;
+    color = COLOR_RED;
   }
 
   int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
-  canvas.fillRect(barX + 1, barY + 1, w - 2, barH - 2, color);
+  // 7000以下はバーを表示しない
+  if (rpm > 7000) {
+    canvas.fillRect(barX + 1, barY + 1, w - 2, barH - 2, color);
+
+  }
 
   // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
   const int infoX = barX + barW - 100;  // 右寄りに表示（バー右端から100px左）
@@ -114,7 +117,7 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   canvas.setTextSize(1);                // 小さいフォントサイズ
   canvas.setTextColor(COLOR_WHITE);
   canvas.setCursor(barX, infoY);
-  canvas.printf("RPM: %d MAX_RPM: %d", rpm, maxRpm);
+  canvas.printf("RPM: %d MAX_RPM: %d / RED: 8600 BLINK: 8800", rpm, maxRpm);
 
   // メモリ（7000, 8000, 8500, 9000を表示）
   canvas.setTextColor(COLOR_WHITE);
