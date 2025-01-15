@@ -23,6 +23,9 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // 最大値を更新
   maxRecordedValue = std::max(value, maxRecordedValue);
 
+  canvas.setTextFont(1);
+  canvas.setTextSize(1);
+
   // 背景を塗りつぶし
   canvas.fillScreen(BACKGROUND_COLOR);
 

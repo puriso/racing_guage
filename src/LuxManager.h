@@ -3,7 +3,7 @@
 
 #include <M5CoreS3.h>
 
-const int sampleCount = 20;  // サンプル数を20に設定
+const int sampleCount = 70;  // サンプル数
 
 class LuxManager
 {
@@ -37,7 +37,7 @@ class LuxManager
     Serial.printf("Updated Lux Sample %d: %.2f lx\n", currentSample, currentLux);
 
     // 配列の内容をログに出力
-    logLuxSamples();
+    ///logLuxSamples();
   }
 
   // 平均照度を計算

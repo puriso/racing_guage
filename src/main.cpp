@@ -1,3 +1,5 @@
+const bool IS_DEBUG = true;  // デバッグモード
+
 #include <Adafruit_ADS1X15.h>
 #include <M5CoreS3.h>
 #include <M5GFX.h>
@@ -16,9 +18,6 @@ const uint32_t COLOR_BLACK = M5.Lcd.color888(0, 0, 0);      // 黒
 const uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0); // オレンジ
 const uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);    // 黄
 const uint32_t COLOR_RED = M5.Lcd.color888(255, 0, 0);      // 赤
-                                                            //
-
-const bool IS_DEBUG = true;  // デバッグモード
 
 // LCDの幅と高さを定数として定義
 const int LCD_WIDTH = 320;   // M5Stack CoreS3のLCD幅
@@ -88,10 +87,6 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   // 外枠を白で描画
   //canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
 
-  // rpmを7000～9250にクランプ
-  if (rpm < 7000) rpm = 7000;
-  if (rpm > 9250) rpm = 9250;
-
   // rpmに応じたバーの塗り分け
   uint32_t color = COLOR_WHITE;
   if (rpm >= 8800)
@@ -105,19 +100,10 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   }
 
   int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
-  // 7000以下はバーを表示しない
-  if (rpm > 7000) {
-    canvas.fillRect(barX + 1, barY + 1, w - 2, barH - 2, color);
-
+  // 7000以上のみバーを表示する
+  if (rpm >= 7000) {
+    canvas.fillRect(barX, barY, w, barH, color);
   }
-
-  // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
-  const int infoX = barX + barW - 100;  // 右寄りに表示（バー右端から100px左）
-  const int infoY = barY + barH + 10;   // バーの下10pxの位置
-  canvas.setTextSize(1);                // 小さいフォントサイズ
-  canvas.setTextColor(COLOR_WHITE);
-  canvas.setCursor(barX, infoY);
-  canvas.printf("RPM: %d MAX_RPM: %d / RED: 8600 BLINK: 8800", rpm, maxRpm);
 
   // メモリ（7000, 8000, 8500, 9000を表示）
   canvas.setTextColor(COLOR_WHITE);
@@ -143,6 +129,14 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
       canvas.drawLine(tickX, barY, tickX, (barY + barH - 1), M5.Lcd.color888(169, 169, 169));  // グレーの線 (RGB: 169, 169, 169)
     }
   }
+
+  // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
+  const int infoX = barX + barW - 100;
+  const int infoY = barY + barH + 10;
+  canvas.setTextSize(1);
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setCursor(barX, infoY);
+  canvas.printf("RPM: %04d MAX_RPM: %04d / RED: 8600 BLINK: 8800", rpm, maxRpm);
 }
 
 // 電圧計算関数
@@ -237,7 +231,11 @@ void setup()
 {
   Serial.begin(115200);
 
-  M5.begin();  // M5Stackの初期化
+  M5.begin();
+
+  auto cfg = M5.config();
+  CoreS3.begin(cfg);
+
   M5.Lcd.clear();
   M5.Lcd.fillScreen(BLACK);
   display.init();
@@ -273,58 +271,170 @@ void setup()
   device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
 
   luxManager.initializeLuxSamples();   // 照度サンプルの初期化
+
+  M5.Touch.isEnabled();
+
+  canvas.setColorDepth(24);
+  canvas.setTextSize(1);
 }
+
 
 bool isBlink = false;
 int maxRpm = 0;
+void guageMode()
+{
+  int16_t rawOil = ads.readADC_SingleEnded(1);
+  int16_t rawWater = ads.readADC_SingleEnded(0);
+
+  float oilPressureVoltage = calculateVoltage(rawOil);
+  float waterTempVoltage = calculateVoltage(rawWater);
+
+  pressureValues[pressureIndex] = calculateOilPressure(oilPressureVoltage);
+  tempValues[tempIndex] = calculateWaterTemp(waterTempVoltage);
+  tempIndex = (tempIndex + 1) % MAX_TEMP_SAMPLES;
+
+  float pressureAverage = calculateAverage(pressureValues, MAX_PRESSURE_SAMPLES);
+  float tempAverage = calculateAverage(tempValues, MAX_TEMP_SAMPLES);
+
+  maxPressureValue = max(maxPressureValue, pressureAverage);  // 最大油圧値を更新
+  maxTempValue = max(maxTempValue, tempAverage);              // 最大水温値を更新
+
+  if (!isTempOverThreshold && tempAverage >= 98)
+  {
+    isTempOverThreshold = true;
+    M5.Speaker.setVolume(100);
+    M5.Speaker.tone(3000, 2000);
+  }
+
+  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
+
+
+  canvas.createSprite(320, 60);
+
+  canvas.fillSprite(COLOR_BLACK);
+  // RPM
+  int rpm = pressureAverage * 1000;
+  isBlink = !isBlink;
+  if (rpm > maxRpm)
+  {
+    maxRpm = rpm;
+  }
+  drawRpmBar(canvas, rpm, maxRpm, isBlink);
+  canvas.pushSprite(0, 0); // 表示位置 (x, y)
+}
+
+void detailsMode()
+{
+  // 表示データ構造体
+  struct DisplayData {
+    const char* label;  // ラベル名
+    float value;        // 値
+    const char* unit;   // 単位
+  };
+
+  // 表示するデータを管理する配列
+  DisplayData displayData[] = {
+      {"Max Pressure", 8.5, "BAR"},
+      {"Current Pressure", 7.2, "BAR"},
+      {"Max Temp", 98.0, "C"},
+      {"Current Temp", 95.0, "C"},
+      {"Max RPM", 9200, ""},
+      {"Current RPM", 7800, ""}
+  };
+  // 配列の要素数を取得
+  const int displayDataCount = sizeof(displayData) / sizeof(displayData[0]);
+
+  canvas.createSprite(320, 240);
+  // 情報画面をクリア
+  canvas.fillSprite(COLOR_BLACK);
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setTextSize(1);
+
+  // 各項目の配置設定
+  int lineHeight = 30;  // 行の高さ
+  int startY = 10;      // 最初の行のY座標
+  int startX = 10;      // ラベルのX座標
+  int valueX = 200;     // 値のX座標（ラベルから離す距離）
+
+  // 各データを順次描画
+  for (int i = 0; i < displayDataCount; i++) {
+    int y = startY + i * lineHeight;
+
+    // ラベルを描画
+    canvas.setCursor(startX, y);
+    canvas.printf("%s:", displayData[i].label);
+
+    // 値と単位を描画
+    canvas.setCursor(valueX, y);
+    canvas.printf("%.2f %s", displayData[i].value, displayData[i].unit);
+  }
+
+  // 操作案内メッセージを描画
+  canvas.setCursor(10, startY + displayDataCount * lineHeight + 10);
+  canvas.print("Touch to return");
+
+  // 画面を更新
+  canvas.pushSprite(0, 0);
+}
+
+
+enum DisplayMode
+{
+  GUAGES,
+  DETAILS,
+  ATTACK
+};
+
+// 画面モード値
+DisplayMode displayMode = GUAGES;
+static m5::touch_state_t prevTouchState;
+
+int prev_x = -1;
+int prev_y = -1;
 void loop()
 {
+  CoreS3.update();
+
+  auto touched = CoreS3.Touch.getDetail();
+  // タッチされた場合
+  if (touched.isPressed()) {
+    // 次のディスプレイモードへ
+    displayMode = static_cast<DisplayMode>((displayMode + 1) % 2);
+    Serial.printf("Display Mode: %d\n", displayMode);
+    prevTouchState = touched.state;
+    delay(100);
+  }
+
   static unsigned long lastSampleTime = 0;
   static unsigned long lastUpdateTime = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastUpdateTime >= UPDATE_INTERVAL)
-  {
-    int16_t rawOil = ads.readADC_SingleEnded(1);
-    int16_t rawWater = ads.readADC_SingleEnded(0);
+  switch (displayMode) {
+    case GUAGES:
+      // ゲージ表示
+      if (currentMillis - lastUpdateTime >= UPDATE_INTERVAL) {
+        guageMode();  // ゲージモードを描画する関数
+      }
+      break;
 
-    float oilPressureVoltage = calculateVoltage(rawOil);
-    float waterTempVoltage = calculateVoltage(rawWater);
+    case DETAILS:
+      // 詳細表示
+      detailsMode();  // 詳細表示を描画する関数
+      break;
 
-    pressureValues[pressureIndex] = calculateOilPressure(oilPressureVoltage);
-    tempValues[tempIndex] = calculateWaterTemp(waterTempVoltage);
-    tempIndex = (tempIndex + 1) % MAX_TEMP_SAMPLES;
+    //case ATTACK:
+    //  // アタック表示
+    //  //attackMode();  // アタック表示を描画する関数
+    //  break;
 
-    float pressureAverage = calculateAverage(pressureValues, MAX_PRESSURE_SAMPLES);
-    float tempAverage = calculateAverage(tempValues, MAX_TEMP_SAMPLES);
-
-    maxPressureValue = max(maxPressureValue, pressureAverage);  // 最大油圧値を更新
-    maxTempValue = max(maxTempValue, tempAverage);              // 最大水温値を更新
-
-    if (!isTempOverThreshold && tempAverage >= 98)
-    {
-      isTempOverThreshold = true;
-      M5.Speaker.setVolume(100);
-      M5.Speaker.tone(3000, 2000);
-    }
-
-    updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
-
-    lastUpdateTime = currentMillis;
-
-    canvas.createSprite(320, 60);
-    // RPM
-    int rpm = pressureAverage * 1000;
-    isBlink = !isBlink;
-    if (rpm > maxRpm)
-    {
-      maxRpm = rpm;
-    }
-    drawRpmBar(canvas, rpm, maxRpm, isBlink);
-    canvas.pushSprite(0, 0); // 表示位置 (x, y)
+    //default:
+    //  // 未知のモード
+    //  break;
   }
 
+  lastUpdateTime = currentMillis;  // 更新時刻を記録
 
+  // 照度関連
   if (currentMillis - lastSampleTime >= 500)
   {
     luxManager.updateLuxSamples();
