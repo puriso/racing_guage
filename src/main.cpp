@@ -426,6 +426,11 @@ static m5::touch_state_t prevTouchState;
 
 int prev_x = -1;
 int prev_y = -1;
+
+// FPS
+unsigned long fpsLastTime = 0;
+int fpsFrameCount = 0;
+int currentFps = 0;
 void loop()
 {
   CoreS3.update();
@@ -491,6 +496,18 @@ void loop()
       Serial.printf("---------------------------");
     }
     lastSampleTime = currentMillis;
+  }
+
+  // --- FPS計測 ---
+  fpsFrameCount++;
+  if (millis() - fpsLastTime >= 1000) {
+    currentFps = fpsFrameCount;
+    fpsFrameCount = 0;
+    fpsLastTime = millis();
+
+    if (IS_DEBUG) {
+      Serial.printf("FPS: %d\n", currentFps);
+    }
   }
   delay(1);
 }
