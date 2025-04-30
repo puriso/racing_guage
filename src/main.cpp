@@ -37,7 +37,7 @@ M5Canvas oilPressCanvas(&canvas);
 M5Canvas waterTempCanvas(&canvas);
 
 const float SUPPLY_VOLTAGE = 5.0;           // 基準電圧 (5V)
-const unsigned long UPDATE_INTERVAL = 20;  // 更新間隔
+const unsigned long UPDATE_INTERVAL = 33;  // 更新間隔
 
 const int MAX_PRESSURE_SAMPLES = 1;  // 油圧のサンプル数
 const int MAX_TEMP_SAMPLES = 10;     // 水温のサンプル数
@@ -330,7 +330,7 @@ void setup()
 
 bool isBlink = false;
 int maxOilTempTop = 0;
-void guageMode()
+void gaugeMode()
 {
   int16_t rawOil = ads.readADC_SingleEnded(1);
   int16_t rawWater = ads.readADC_SingleEnded(0);
@@ -415,13 +415,13 @@ void detailsMode()
 
 enum DisplayMode
 {
-  GUAGES,
+  gaugeS,
   DETAILS,
   ATTACK
 };
 
 // 画面モード値
-DisplayMode displayMode = GUAGES;
+DisplayMode displayMode = gaugeS;
 static m5::touch_state_t prevTouchState;
 
 int prev_x = -1;
@@ -445,10 +445,10 @@ void loop()
   unsigned long currentMillis = millis();
 
   switch (displayMode) {
-    case GUAGES:
+    case gaugeS:
       // ゲージ表示
       if (currentMillis - lastUpdateTime >= UPDATE_INTERVAL) {
-        guageMode();  // ゲージモードを描画する関数
+        gaugeMode();  // ゲージモードを描画する関数
       }
       break;
 
