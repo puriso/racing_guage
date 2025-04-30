@@ -60,15 +60,20 @@ float graphData[GRAPH_WIDTH] = {0};  // グラフのデータを保持する配�
 
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
-void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
+void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop, bool blinkState)
 {
+  const int MAX_DISPLAY_VALUE = 130;
+  const int MIN_DISPLAY_VALUE = 80;
+  const float MAX_MIN_DIFF = MAX_DISPLAY_VALUE - MIN_DISPLAY_VALUE;
+  const int ALERT_THRESHOLD = 120;
+
   // 背景クリア
   canvas.fillSprite(COLOR_BLACK);
 
   // バー位置・サイズ
   const int barX = 20;     // バーの左端X座標
   const int barY = 15;     // バーの上端Y座標
-  const int barW = 280;    // バーの幅
+  const int barW = 210;    // バーの幅
   const int barH = 20;     // バーの高さ
 
   // バー背景
@@ -76,7 +81,7 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
 
   // レッドゾーンの赤帯をメモリと数字の下に常時表示
   {
-    const int rx = barX + (int)(barW * ((float)(9000 - 7000) / 2250.0f));  // 9000rpmの位置
+    const int rx = barX + (int)(barW * ((float)(MAX_DISPLAY_VALUE - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF));  // リミットの位置
     const int ry = barY - 5;                                               // メモリと数字の下に配置
     const int rw = barW - (rx - barX);                                     // 赤帯の幅
     const int rh = 5;                                                      // 赤帯の高さ
@@ -87,56 +92,57 @@ void drawRpmBar(M5Canvas &canvas, int rpm, int maxRpm, bool blinkState)
   // 外枠を白で描画
   //canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
 
-  // rpmに応じたバーの塗り分け
+  // OilTempTopに応じたバーの塗り分け
   uint32_t color = COLOR_WHITE;
-  if (rpm >= 8800)
-  {
-    // 点滅
-    color = blinkState ? M5.Lcd.color888(173, 216, 230) : M5.Lcd.color888(70, 130, 180);
-  }
-  else if (rpm >= 8600)
+  if (OilTempTop >= ALERT_THRESHOLD)
   {
     color = COLOR_RED;
   }
 
-  int w = (int)((float)barW * ((float)(rpm - 7000) / 2250.0f));
-  // 7000以上のみバーを表示する
-  if (rpm >= 7000) {
+  int w = (int)((float)barW * ((float)(OilTempTop - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF));  // バーの幅
+  // 80度以上のみバーを表示する
+  if (OilTempTop >= MIN_DISPLAY_VALUE) {
     canvas.fillRect(barX, barY, w, barH, color);
   }
 
-  // メモリ（7000, 8000, 8500, 9000を表示）
+  // メモリ
   canvas.setTextColor(COLOR_WHITE);
-  const int memValues[] = {7000, 8000, 8500, 9000};
+  const int memValues[] = { 80, 90, 100, 110, 120, 130 };
   const int memCount = sizeof(memValues) / sizeof(memValues[0]);
 
   for (int i = 0; i < memCount; i++)
   {
-    float ratio = (float)(memValues[i] - 7000) / 2250.0f;  // メモリの相対位置 (7000～9250)
+    float ratio = (float)(memValues[i] - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF;  // メモリの相対位置
     int tickX   = barX + (int)(barW * ratio);              // メモリの位置
     int tickY   = barY - 2;                                // メモリ位置 (バー上)
 
     // メモリの点線
     canvas.drawPixel(tickX, tickY, COLOR_WHITE);
 
-    // メモリの数字 ("7000", "8000", ..., "9000")
+    // メモリの数字
     canvas.setCursor(tickX - 10, tickY - 12);
     canvas.printf("%d", memValues[i]);
 
-    // 9000rpmのバー内区切り線（グレー）
-    if (memValues[i] == 9000)
+    // 9000OilTempTopのバー内区切り線（グレー）
+    if (memValues[i] == ALERT_THRESHOLD)
     {
-      canvas.drawLine(tickX, barY, tickX, (barY + barH - 1), M5.Lcd.color888(169, 169, 169));  // グレーの線 (RGB: 169, 169, 169)
+      canvas.drawLine(tickX, barY, tickX, (barY + barH - 2), M5.Lcd.color888(169, 169, 169));  // グレーの線 (RGB: 169, 169, 169)
     }
   }
 
-  // 右下に現在の回転数 (rpm) と最大回転数 (maxRpm) を表示
+  // 現在の回転数 (OilTempTop) と最大回転数 (maxOilTempTop) を表示
   const int infoX = barX + barW - 100;
   const int infoY = barY + barH + 10;
   canvas.setTextSize(1);
   canvas.setTextColor(COLOR_WHITE);
   canvas.setCursor(barX, infoY);
-  canvas.printf("RPM: %04d MAX_RPM: %04d / RED: 8600 BLINK: 8800", rpm, maxRpm);
+  canvas.printf("MAX OIL.T / Celsius: MAX -> %02d", maxOilTempTop);
+
+  // 右側に絶対値を表示
+  char OilTempTopStrings[3];
+  sprintf(OilTempTopStrings, "%d", OilTempTop);
+  canvas.drawRightString(OilTempTopStrings, barW + (GRAPH_WIDTH - barW) - 1 , 5, &FreeSansBold24pt7b);
+
 }
 
 // 電圧計算関数
@@ -280,7 +286,7 @@ void setup()
 
 
 bool isBlink = false;
-int maxRpm = 0;
+int maxOilTempTop = 0;
 void guageMode()
 {
   int16_t rawOil = ads.readADC_SingleEnded(1);
@@ -311,15 +317,17 @@ void guageMode()
 
   canvas.createSprite(320, 60);
 
+  // 油温
+
   canvas.fillSprite(COLOR_BLACK);
-  // RPM
-  int rpm = pressureAverage * 1000;
+  // OilTempTop
+  int OilTempTop = (pressureAverage + 3) * 10;
   isBlink = !isBlink;
-  if (rpm > maxRpm)
+  if (OilTempTop > maxOilTempTop)
   {
-    maxRpm = rpm;
+    maxOilTempTop = OilTempTop;
   }
-  drawRpmBar(canvas, rpm, maxRpm, isBlink);
+  drawOilTempTopBar(canvas, OilTempTop, maxOilTempTop, isBlink);
   canvas.pushSprite(0, 0); // 表示位置 (x, y)
 }
 
@@ -338,8 +346,8 @@ void detailsMode()
       {"Current Pressure", 7.2, "BAR"},
       {"Max Temp", 98.0, "C"},
       {"Current Temp", 95.0, "C"},
-      {"Max RPM", 9200, ""},
-      {"Current RPM", 7800, ""}
+      {"Max OilTempTop", 9200, ""},
+      {"Current OilTempTop", 7800, ""}
   };
   // 配列の要素数を取得
   const int displayDataCount = sizeof(displayData) / sizeof(displayData[0]);
@@ -441,18 +449,18 @@ void loop()
     float averageLux = luxManager.calculateAverageLux();
     // 照度によって画面の明るさを調整
     // 引数: 現在の照度, 最小照度, 最大照度, 最小明るさ, 最大明るさ
-    int brightness = map(averageLux, 0, 100, 50, 150);
+    // int brightness = map(averageLux, 0, 100, 50, 150);
 
-    // 滑らかに明るさを変更
-    if (M5.Lcd.getBrightness() != brightness)
-    {
-      M5.Lcd.setBrightness(brightness);
-    }
+    // // 滑らかに明るさを変更
+    // if (M5.Lcd.getBrightness() != brightness)
+    // {
+    //   M5.Lcd.setBrightness(brightness);
+    // }
 
     if (IS_DEBUG)
     {
       Serial.printf("-- LuxManager -------------");
-      Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
+      // Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
       Serial.printf("---------------------------");
     }
     lastSampleTime = currentMillis;

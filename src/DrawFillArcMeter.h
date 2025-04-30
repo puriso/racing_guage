@@ -101,6 +101,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
       snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
 
       canvas.setTextFont(1);
+      canvas.setFont(&fonts::Font0);
       canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
       canvas.setCursor(labelX - (canvas.textWidth(labelText) / 2), labelY - 4);
       canvas.print(labelText);
