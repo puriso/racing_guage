@@ -60,7 +60,7 @@ float graphData[GRAPH_WIDTH] = {0};  // グラフのデータを保持する配�
 
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
-void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop, bool blinkState)
+void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop)
 {
   const int MAX_DISPLAY_VALUE = 130;
   const int MIN_DISPLAY_VALUE = 80;
@@ -212,15 +212,58 @@ void drawMainValue(int spriteWidth, const char *text, int spacing, int y)
 }
 
 // 表示とログ更新
-void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil,
-                         int16_t rawWater)
-{
-  //// 油圧表示
+void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater, int16_t maxOilTempTop) {
+
+  // レブリミット
+  int rpm = pressureAvg * 1000;
+  if (rpm >= 8900)
+  {
+    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
+    canvas.fillSprite(COLOR_RED);
+    canvas.pushSprite(0, 0);  // 表示位置 (x, y)
+    return;
+  } else if (rpm >= 8700)
+  {
+    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
+    canvas.fillSprite(COLOR_YELLOW);
+    canvas.pushSprite(0, 0);  // 表示位置 (x, y)
+    return;
+  }
+
+  canvas.fillSprite(MAIN_BACKGROUND_COLOR);
+
+  // 油温
+  canvas.createSprite(320, 60);
+  canvas.fillSprite(COLOR_BLACK);
+  // OilTempTop
+  int OilTempTop = (pressureAvg + 5) * 10;
+  if (OilTempTop > maxOilTempTop)
+  {
+    maxOilTempTop = OilTempTop;
+  }
+  drawOilTempTopBar(canvas, OilTempTop, maxOilTempTop);
+  canvas.pushSprite(0, 0); // 表示位置 (x, y)
+
+  // 油圧
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setTextSize(2);
+  canvas.setFont(&FreeSansBold24pt7b);
+  canvas.setCursor(0, 0);
+  drawMainValue(LCD_WIDTH, "OIL PRESSURE", 5, 10);  // 中央配置
+
+  // 水温
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setTextSize(2);
+  canvas.setFont(&FreeSansBold24pt7b);
+  canvas.setCursor(160, 0);
+  drawMainValue(LCD_WIDTH, "WATER TEMP", 5, 10);  // 中央配置
+
+  // 油圧名表示
   canvas.createSprite(160, 180);
   drawFillArcMeter(canvas, pressureAvg, 0.0, 10.0, 8.0, RED, "BAR", "OIL.P", maxPressureValue, 0.5, true);
   canvas.pushSprite(0, 60);
 
-  // 水温表示
+  // 水温名表示
   canvas.createSprite(160, 180);
   drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0, false);
   canvas.pushSprite(160, 60);
@@ -312,23 +355,7 @@ void guageMode()
     M5.Speaker.tone(3000, 2000);
   }
 
-  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater);
-
-
-  canvas.createSprite(320, 60);
-
-  // 油温
-
-  canvas.fillSprite(COLOR_BLACK);
-  // OilTempTop
-  int OilTempTop = (pressureAverage + 3) * 10;
-  isBlink = !isBlink;
-  if (OilTempTop > maxOilTempTop)
-  {
-    maxOilTempTop = OilTempTop;
-  }
-  drawOilTempTopBar(canvas, OilTempTop, maxOilTempTop, isBlink);
-  canvas.pushSprite(0, 0); // 表示位置 (x, y)
+  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater, maxOilTempTop);
 }
 
 void detailsMode()
