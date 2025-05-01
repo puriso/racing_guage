@@ -7,8 +7,8 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 * **Oil / Water Temperature** via **Defi PDF00703S** (–40 – 150 °C, 0.5 – 4.5 V)  
 * **Engine RPM** via a 0–5 V pulse signal (frequency-to-voltage converter or direct digital capture)
 * 
-![IMG_1479](https://github.com/user-attachments/assets/d3a8bfdc-0bba-4519-b64a-f31a1ec9a9f4)
 
+<img src="https://github.com/user-attachments/assets/d3a8bfdc-0bba-4519-b64a-f31a1ec9a9f4" width="640">
 
 
 ---
