@@ -1,467 +1,326 @@
-const bool IS_DEBUG = false;  // デバッグモード
+// デバッグモード切替
+const bool IS_DEBUG = false;
 
 #include <Adafruit_ADS1X15.h>
 #include <M5CoreS3.h>
 #include <M5GFX.h>
 #include <Wire.h>
-
 #include <algorithm>
-#include <cmath>  // log関数を使用
+#include <cmath>  // log関数
 
-#include "LuxManager.h"    // 照度によって画面の明るさを調整
-#include "DrawFillArcMeter.h"
-// #include "ShiftLamp.h"
+#include "LuxManager.h"        // 照度によるバックライト調整
+#include "DrawFillArcMeter.h"  // 半円メーター描画
+// #include "ShiftLamp.h"      // 未使用なら外してもOK
 
-// 色設定 (18ビットカラー)
-const uint32_t COLOR_WHITE = M5.Lcd.color888(255, 255, 255); // 白
-const uint32_t COLOR_BLACK = M5.Lcd.color888(0, 0, 0);      // 黒
-const uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0); // オレンジ
-const uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);    // 黄
-const uint32_t COLOR_RED = M5.Lcd.color888(255, 0, 0);      // 赤
+// 色設定 (18bitカラー)
+const uint32_t COLOR_WHITE  = M5.Lcd.color888(255,255,255);
+const uint32_t COLOR_BLACK  = M5.Lcd.color888(0,0,0);
+const uint32_t COLOR_ORANGE = M5.Lcd.color888(255,165,0);
+const uint32_t COLOR_YELLOW = M5.Lcd.color888(255,255,0);
+const uint32_t COLOR_RED    = M5.Lcd.color888(255,0,0);
 
-// LCDの幅と高さを定数として定義
-const int LCD_WIDTH = 320;   // M5Stack CoreS3のLCD幅
-const int LCD_HEIGHT = 240;  // M5Stack CoreS3のLCD高さ
+// LCDサイズ
+const int LCD_WIDTH  = 320;
+const int LCD_HEIGHT = 240;
 
-M5GFX display;
+// M5 & GFX オブジェクト
+M5GFX    display;
 M5Canvas canvas(&display);
 LuxManager luxManager;
 
-const int GRAPH_WIDTH = 320;
+// グラフ用（未使用なら削除可）
+const int GRAPH_WIDTH  = 320;
 const int GRAPH_HEIGHT = 40;
+float graphData[GRAPH_WIDTH] = {0};
 
+// ADS1015
 Adafruit_ADS1015 ads;
 M5Canvas oilPressCanvas(&canvas);
 M5Canvas waterTempCanvas(&canvas);
 
-const float SUPPLY_VOLTAGE = 5.0;           // 基準電圧 (5V)
-const unsigned long UPDATE_INTERVAL = 1;  // 更新間隔
-
-const int MAX_PRESSURE_SAMPLES = 1;  // 油圧のサンプル数
-const int MAX_TEMP_SAMPLES = 10;     // 水温のサンプル数
-
-const float R25 = 10000.0;                 // 25℃でのサーミスタの抵抗値 (10kΩ)
-const float B_CONSTANT = 3380.0;           // サーミスタのB定数
-const float T25 = 298.15;                  // 25℃の絶対温度 (K)
-const float REFERENCE_RESISTOR = 10000.0;  // 分圧回路の基準抵抗値 (10kΩ)
-
+// センササンプルバッファ
+const int MAX_PRESSURE_SAMPLES = 1;
+const int MAX_TEMP_SAMPLES     = 10;
 float pressureValues[MAX_PRESSURE_SAMPLES] = {0};
-float maxPressureValue = 0;
-float tempValues[MAX_TEMP_SAMPLES] = {0};
-float maxTempValue = 0;
-bool isPressureOverThreshold = false;
-bool isTempOverThreshold = false;
-int pressureIndex = 0;
-int tempIndex = 0;
+float tempValues    [MAX_TEMP_SAMPLES]     = {0};
+int   pressureIndex = 0;
+int   tempIndex     = 0;
 
-float graphData[GRAPH_WIDTH] = {0};  // グラフのデータを保持する配列
+// 最大値トラッキング
+float maxPressureValue = 0.0f;
+float maxTempValue     = 0.0f;
+int   maxOilTempTop    = 0;
 
+// 電圧変換パラメータ
+const float SUPPLY_VOLTAGE    = 5.0f;
+const float R25               = 10000.0f;
+const float B_CONSTANT        = 3380.0f;
+const float T25               = 298.15f;
+const float REFERENCE_RESISTOR = 10000.0f;
+
+// ALS 初期化パラメータ
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
-void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop)
-{
-  const int MAX_DISPLAY_VALUE = 130;
-  const int MIN_DISPLAY_VALUE = 80;
-  const float MAX_MIN_DIFF = MAX_DISPLAY_VALUE - MIN_DISPLAY_VALUE;
-  const int ALERT_THRESHOLD = 120;
+// FPS 用カウンタ
+unsigned long fpsLastTime   = 0;
+int          fpsFrameCount  = 0;
+int          currentFps     = 0;
 
-  // バー位置・サイズ
-  const int barX = 20;     // バーの左端X座標
-  const int barY = 15;     // バーの上端Y座標
-  const int barW = 210;    // バーの幅
-  const int barH = 20;     // バーの高さ
+// 表示モード
+enum DisplayMode { gaugeS, DETAILS, ATTACK };
+DisplayMode displayMode = gaugeS;
+static m5::touch_state_t prevTouchState;
 
-  // バー背景
-  canvas.fillRect(barX + 1, barY + 1, barW - 2, barH - 2, 0x18E3);
+// プロトタイプ宣言
+void drawOilTempTopBar(M5Canvas &canvas, int oilTemp, int maxOilTemp);
+void updateDisplayAndLog(float pressureAvg, float waterTempAvg,
+                         float oilVol, float waterVol,
+                         int16_t rawOil, int16_t rawWater,
+                         int16_t oilTemp, int16_t maxOilTemp, int16_t rpm);
+void gaugeMode();
+void detailsMode();
 
-  // レッドゾーンの赤帯をメモリと数字の下に常時表示
-  {
-    const int rx = barX + (int)(barW * ((float)(MAX_DISPLAY_VALUE - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF));  // リミットの位置
-    const int ry = barY - 5;                                               // メモリと数字の下に配置
-    const int rw = barW - (rx - barX);                                     // 赤帯の幅
-    const int rh = 5;                                                      // 赤帯の高さ
-
-    canvas.fillRect(rx, ry, rw, rh, COLOR_RED);  // 赤帯の描画
-  }
-
-  // 外枠を白で描画
-  //canvas.drawRect(barX, barY, barW, barH, COLOR_WHITE);
-
-  // OilTempTopに応じたバーの塗り分け
-  uint32_t color = COLOR_WHITE;
-  if (OilTempTop >= ALERT_THRESHOLD)
-  {
-    color = COLOR_RED;
-  }
-
-  int w = (int)((float)barW * ((float)(OilTempTop - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF));  // バーの幅
-  // 80度以上のみバーを表示する
-  if (OilTempTop >= MIN_DISPLAY_VALUE) {
-    canvas.fillRect(barX, barY, w, barH, color);
-  }
-
-  // メモリ
-  const int memValues[] = { 80, 90, 100, 110, 120, 130 };
-  const int memCount = sizeof(memValues) / sizeof(memValues[0]);
-
-  canvas.setTextColor(COLOR_WHITE);
-  canvas.setFont(&fonts::Font0);
-  for (int i = 0; i < memCount; i++)
-  {
-    float ratio = (float)(memValues[i] - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF;  // メモリの相対位置
-    int tickX   = barX + (int)(barW * ratio);              // メモリの位置
-    int tickY   = barY - 2;                                // メモリ位置 (バー上)
-
-    // メモリの点線
-    canvas.drawPixel(tickX, tickY, COLOR_WHITE);
-
-    // メモリの数字
-    canvas.setCursor(tickX - 10, tickY - 12);
-    canvas.printf("%d", memValues[i]);
-
-    // 9000OilTempTopのバー内区切り線（グレー）
-    if (memValues[i] == ALERT_THRESHOLD)
-    {
-      canvas.drawLine(tickX, barY, tickX, (barY + barH - 2), M5.Lcd.color888(169, 169, 169));  // グレーの線 (RGB: 169, 169, 169)
-    }
-  }
-
-  // 現在の回転数 (OilTempTop) と最大回転数 (maxOilTempTop) を表示
-  const int infoX = barX + barW - 100;
-  const int infoY = barY + barH + 10;
-  canvas.setTextSize(1);
-  canvas.setTextColor(COLOR_WHITE);
-  canvas.setCursor(barX, infoY);
-  canvas.printf("MAX OIL.T / Celsius: MAX -> %02d", maxOilTempTop);
-
-  // 右側に絶対値を表示
-  char OilTempTopStrings[3];
-  sprintf(OilTempTopStrings, "%d", OilTempTop);
-  canvas.drawRightString(OilTempTopStrings, barW + (LCD_WIDTH - barW) - 1 , 5, &FreeSansBold24pt7b);
-
+// ————————————————————
+// 電圧→電圧(V) 変換
+inline float calculateVoltage(int16_t rawADC) {
+  return (rawADC * 6.144f) / 2047.0f;
 }
 
-// 電圧計算関数
-auto calculateVoltage(int16_t rawADC) -> float
-{
-  return (rawADC * 6.144) / 2047.0;  // ADS1015の±6.144V設定を使用
+// 電圧→油圧(bar) 変換（元実装に合わせて 250*(V-0.5)/100）
+inline float calculateOilPressure(float voltage) {
+  return (voltage > 0.5f)
+    ? 250.0f * (voltage - 0.5f) / 100.0f
+    : 0.0f;
 }
 
-// 油圧計算
-auto calculateOilPressure(float voltage) -> float
-{
-  return (voltage > 0.5) ? 250 * (voltage - 0.5) / 100.0 : 0.0;  // kPaをMpa換算
+// 電圧→水温(℃) 変換
+inline float calculateWaterTemp(float voltage) {
+  float r = REFERENCE_RESISTOR * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
+  float tK = B_CONSTANT / (log(r / R25) + B_CONSTANT / T25);
+  return std::isnan(tK) ? 200.0f : tK - 273.15f;
 }
 
-// サーミスタの電圧から水温を計算
-auto calculateWaterTemp(float voltage) -> float
-{
-  float resistance = REFERENCE_RESISTOR * ((SUPPLY_VOLTAGE / voltage) - 1);
-  float tempK = B_CONSTANT / (log(resistance / R25) + B_CONSTANT / T25);
-  // nanの場合は200度として扱う
-  return isnan(tempK) ? 200 : tempK - 273.15;  // 摂氏に変換
-}
-
-// 平均計算関数
-auto calculateAverage(const float values[], int size) -> float
-{
+// 平均計算
+inline float calculateAverage(const float vals[], int n) {
   float sum = 0;
-  for (int i = 0; i < size; i++)
-  {
-    sum += values[i];
-  }
-  return sum / size;
+  for (int i = 0; i < n; ++i) sum += vals[i];
+  return sum / n;
 }
 
-// 文字間隔を考慮した中央配置用X座標計算
-auto calculateCenteredX(int16_t spriteWidth, const char *text, int spacing = 0, M5Canvas &canvas = canvas) -> int16_t
+// RPM 文字列描画
+void drawRPMValue(int rpm, int x, int y, const lgfx::IFont* font) {
+  char buf[10];
+  sprintf(buf, "%d", rpm);
+  canvas.drawCenterString(buf, x, y, font);
+}
+
+// ————————————————————
+// 画面更新＋ログ（FPS表示・シリアル出力含む）
+// ————————————————————
+void updateDisplayAndLog(float pressureAvg, float waterTempAvg,
+                         float oilVol, float waterVol,
+                         int16_t rawOil, int16_t rawWater,
+                         int16_t oilTemp, int16_t maxOilTemp, int16_t rpm)
 {
-  int totalWidth = 0;
-
-  for (int i = 0; text[i] != '\0'; i++)
-  {
-    totalWidth += canvas.textWidth(String(text[i]));
-    if (text[i + 1] != '\0')
-    {  // 最後の文字以外は間隔を加算
-      totalWidth += spacing;
-    }
-  }
-
-  return (spriteWidth - totalWidth) / 2;
-}
-
-// メインの数値表示用を文字間隔を考慮して中央配置するテキスト描画
-void drawMainValue(int spriteWidth, const char *text, int spacing, int y)
-{
-  int16_t startX = calculateCenteredX(spriteWidth, text, spacing, canvas);  // 修正した中央配置X座標計算
-  int16_t cursorX = startX;                                                 // 描画開始位置を設定
-
-  for (int i = 0; text[i] != '\0'; i++)
-  {
-    canvas.drawChar(text[i], cursorX, y);  // 文字を描画
-
-    if (text[i + 1] != '\0')
-    {  // 最後の文字以外は間隔を加算
-      cursorX += canvas.textWidth(String(text[i])) + spacing;
-    }
-  }
-}
-
-// RPM表示用のテキスト描画
-// 引数 rpm, x, y, fontは、それぞれ回転数、X座標、Y座標、フォントを指定
-void drawRPMValue(int rpm, int x, int y, const lgfx::IFont* font)
-{
-  char rpmString[10];
-  sprintf(rpmString, "%d", rpm);
-  canvas.drawCenterString(rpmString, x , y, font);
-}
-
-// 表示とログ更新
-void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater, int16_t oilTemp, int16_t maxOilTempTop, int16_t rpm) {
-  canvas.deleteSprite();   // スプライトを削除
+  canvas.deleteSprite();
   canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
-  // レブリミット
-  if (rpm >= 8900)
-  {
-    canvas.fillSprite(COLOR_RED);
+
+  // レブリミット（元の早期returnロジック）
+  if (rpm >= 8900) {
+    canvas.fillSprite(RED);
     canvas.setTextColor(COLOR_WHITE);
     canvas.setTextSize(2);
-    drawRPMValue(rpm, LCD_WIDTH / 2, 20, &fonts::Font7);
-    canvas.pushSprite(0, 0);  // 表示位置 (x, y)
+    drawRPMValue(rpm, LCD_WIDTH/2, 20, &fonts::Font7);
+    canvas.pushSprite(0,0);
     return;
-  } else if (rpm >= 8400)
-  {
-    canvas.fillSprite(COLOR_YELLOW);
+  }
+  else if (rpm >= 8400) {
+    canvas.fillSprite(YELLOW);
     canvas.setTextColor(COLOR_BLACK);
     canvas.setTextSize(2);
-    drawRPMValue(rpm, LCD_WIDTH / 2, 20, &fonts::Font7);
-    canvas.pushSprite(0, 0);  // 表示位置 (x, y)
+    drawRPMValue(rpm, LCD_WIDTH/2, 20, &fonts::Font7);
+    canvas.pushSprite(0,0);
     return;
-  }else{
-    canvas.fillSprite(COLOR_BLACK);
-    canvas.setTextColor(COLOR_WHITE);
-    canvas.setTextSize(0);
   }
 
-  // 油温
-  if (oilTemp > maxOilTempTop)
-  {
-    maxOilTempTop = oilTemp;
-  }
-  drawOilTempTopBar(canvas, oilTemp, maxOilTempTop);
+  // 通常描画
+  canvas.fillSprite(COLOR_BLACK);
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setTextSize(0);
 
-  // 油圧表示
-  drawFillArcMeter(canvas, pressureAvg, 0.0, 10.0, 8.0, RED, "BAR", "OIL.P", maxPressureValue, 0.5, true, 0, 60);
+  // 油温バー
+  if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
+  drawOilTempTopBar(canvas, oilTemp, maxOilTemp);
 
-  // 水温表示
-  drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0, false, 160, 60);
+  // 油圧メーター
+  drawFillArcMeter(canvas, pressureAvg,  0.0f, 10.0f,  8.0f,
+                   RED, "BAR", "OIL.P", maxPressureValue,
+                   0.5f, true,  0, 60);
+  // 水温メーター
+  drawFillArcMeter(canvas, waterTempAvg, 50.0f,110.0f, 98.0f,
+                   RED, "Celsius",   "WATER.T", maxTempValue,
+                   5.0f, false,160,60);
 
   // RPM表示
-  canvas.setTextColor(COLOR_WHITE);
-  drawRPMValue(rpm, LCD_WIDTH / 2, 70, &fonts::Font0);
-  canvas.drawCenterString("RPM", LCD_WIDTH / 2, 80);
+  drawRPMValue(rpm, LCD_WIDTH/2, 60, &fonts::Font0);
+  canvas.drawCenterString("RPM", LCD_WIDTH/2, 70);
 
-  canvas.pushSprite(0, 0);  // 表示位置 (x, y)
+  // FPS表示（左下）
+  canvas.setTextSize(1);
+  canvas.setCursor(5, LCD_HEIGHT - 12);
+  canvas.printf("FPS:%d", currentFps);
 
-  if (IS_DEBUG)
-  {
-    Serial.printf("Oil Pressure: %.2f kPa | Water Temp: %.2f C\n", pressureAvg, waterTempAverage);
-    Serial.printf("Oil Voltage: %.2f V | Water Voltage: %.2f V\n", oilVoltage, waterVoltage);
-    Serial.printf("Raw Oil: %d | Raw Water: %d\n", rawOil, rawWater);
+  canvas.pushSprite(0,0);
+
+  // シリアル出力（デバッグ）
+  if (IS_DEBUG) {
+    Serial.printf("OilP:%.2fbar WatT:%.2fC V(oil):%.2f V(wat):%.2f FPS:%d\n",
+                  pressureAvg, waterTempAvg, oilVol, waterVol, currentFps);
   }
 }
 
+// ————————————————————
+// 油温トップバー描画
+// ————————————————————
+void drawOilTempTopBar(M5Canvas &canvas, int oilTemp, int maxOilTemp)
+{
+  const int MIN_V = 80, MAX_V = 130, ALERT_V = 120;
+  const float RANGE = MAX_V - MIN_V;
+  const int X = 20, Y = 15, W = 210, H = 20;
+
+  // 背景
+  canvas.fillRect(X+1,Y+1,W-2,H-2, 0x18E3);
+
+  // 条件付きバー
+  if (oilTemp >= MIN_V) {
+    int w = (W*(oilTemp - MIN_V)/RANGE);
+    canvas.fillRect(X,Y,w,H, (oilTemp>=ALERT_V?COLOR_RED:COLOR_WHITE));
+  }
+
+  // メモリ＆数字
+  int marks[] = {80,90,100,110,120,130};
+  canvas.setTextSize(1);
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setFont(&fonts::Font0);
+  for (int v:marks) {
+    int tx = X + (W*(v - MIN_V)/RANGE);
+    canvas.drawPixel(tx, Y-2, COLOR_WHITE);
+    canvas.setCursor(tx-10, Y-14);
+    canvas.printf("%d", v);
+    if (v==ALERT_V) canvas.drawLine(tx,Y,tx,Y+H-2, M5.Lcd.color888(169,169,169));
+  }
+
+  // 絶対値
+  canvas.setCursor(X, Y+H+10);
+  canvas.printf("OIL.T/ Celsius, MAX: %03d℃", maxOilTemp);
+  char buf[4]; sprintf(buf,"%d", oilTemp);
+  canvas.drawRightString(buf, LCD_WIDTH - 1, 5, &FreeSansBold24pt7b);
+}
+
+// ————————————————————
+// setup()
+// ————————————————————
 void setup()
 {
   Serial.begin(115200);
 
   M5.begin();
-
   auto cfg = M5.config();
   CoreS3.begin(cfg);
 
   M5.Lcd.clear();
-  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.fillScreen(COLOR_BLACK);
+
   display.init();
   display.setRotation(3);
   display.setColorDepth(24);
-  Serial.println("start!");
-  M5.Speaker.begin();
-  M5.Imu.begin();
-
-  // Bluetoothを無効化
-  btStop();
-
-  pinMode(9, INPUT_PULLUP);
-  pinMode(8, INPUT_PULLUP);
-  Wire.begin(9, 8);  // SDA: 9, SCL: 8
-
-  if (!ads.begin())
-  {
-    Serial.println("Failed to initialize ADS1015! Check connections.");
-    display.setCursor(8, 50);
-    display.setTextFont(2);
-    display.setTextSize(1);
-    display.setTextColor(RED);
-    display.print("Failed to initialize ADS1015! Check connections.");
-    while (1)
-    {
-      ;  // 初期化失敗時は無限ループ
-    }
-  }
-  // initializeShiftLamp(canvas);
-
-  CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
-  device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
-
-  luxManager.initializeLuxSamples();   // 照度サンプルの初期化
-
-  M5.Touch.isEnabled();
 
   canvas.setColorDepth(24);
   canvas.setTextSize(1);
-}
 
+  M5.Speaker.begin();
+  M5.Imu.begin();
+  btStop();  // Bluetooth off
 
-bool isBlink = false;
-int maxOilTempTop = 0;
-void gaugeMode()
-{
-  int16_t rawOil = ads.readADC_SingleEnded(1);
-  int16_t rawWater = ads.readADC_SingleEnded(0);
+  pinMode(9, INPUT_PULLUP);
+  pinMode(8, INPUT_PULLUP);
+  Wire.begin(9,8);
 
-  float oilPressureVoltage = calculateVoltage(rawOil);
-  float waterTempVoltage = calculateVoltage(rawWater);
-
-  pressureValues[pressureIndex] = calculateOilPressure(oilPressureVoltage);
-  tempValues[tempIndex] = calculateWaterTemp(waterTempVoltage);
-  tempIndex = (tempIndex + 1) % MAX_TEMP_SAMPLES;
-
-  float pressureAverage = calculateAverage(pressureValues, MAX_PRESSURE_SAMPLES);
-  float tempAverage = calculateAverage(tempValues, MAX_TEMP_SAMPLES);
-
-  maxPressureValue = max(maxPressureValue, pressureAverage);  // 最大油圧値を更新
-  maxTempValue = max(maxTempValue, tempAverage);              // 最大水温値を更新
-
-  int oilTemp = (pressureAverage + 5) * 10;
-  int rpm = pressureAverage * 1000;
-
-  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater, oilTemp, maxOilTempTop, rpm);
-}
-
-void detailsMode()
-{
-  // 表示データ構造体
-  struct DisplayData {
-    const char* label;  // ラベル名
-    float value;        // 値
-    const char* unit;   // 単位
-  };
-
-  // 表示するデータを管理する配列
-  DisplayData displayData[] = {
-      {"Max Pressure", 8.5, "BAR"},
-      {"Current Pressure", 7.2, "BAR"},
-      {"Max Temp", 98.0, "C"},
-      {"Current Temp", 95.0, "C"},
-      {"Max OilTempTop", 9200, ""},
-      {"Current OilTempTop", 7800, ""}
-  };
-  // 配列の要素数を取得
-  const int displayDataCount = sizeof(displayData) / sizeof(displayData[0]);
-
-  canvas.createSprite(320, 240);
-  // 情報画面をクリア
-  canvas.fillSprite(COLOR_BLACK);
-  canvas.setTextColor(COLOR_WHITE);
-  canvas.setTextSize(1);
-
-  // 各項目の配置設定
-  int lineHeight = 30;  // 行の高さ
-  int startY = 10;      // 最初の行のY座標
-  int startX = 10;      // ラベルのX座標
-  int valueX = 200;     // 値のX座標（ラベルから離す距離）
-
-  // 各データを順次描画
-  for (int i = 0; i < displayDataCount; i++) {
-    int y = startY + i * lineHeight;
-
-    // ラベルを描画
-    canvas.setCursor(startX, y);
-    canvas.printf("%s:", displayData[i].label);
-
-    // 値と単位を描画
-    canvas.setCursor(valueX, y);
-    canvas.printf("%.2f %s", displayData[i].value, displayData[i].unit);
+  if (!ads.begin()) {
+    Serial.println("ADS1015 init failed");
+    display.setCursor(8,50);
+    display.setTextColor(COLOR_RED);
+    display.print("ADS1015 init failed!");
+    while(true);
   }
 
-  // 操作案内メッセージを描画
-  canvas.setCursor(10, startY + displayDataCount * lineHeight + 10);
-  canvas.print("Touch to return");
-
-  // 画面を更新
-  canvas.pushSprite(0, 0);
+  CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
+  device_init_base_para.als_gain = LTR5XX_ALS_GAIN_1X;
+  luxManager.initializeLuxSamples();
 }
 
-
-enum DisplayMode
+// ————————————————————
+// ゲージモード描画
+// ————————————————————
+void gaugeMode()
 {
-  gaugeS,
-  DETAILS,
-  ATTACK
-};
+  int16_t rawOil   = ads.readADC_SingleEnded(1);
+  int16_t rawWater = ads.readADC_SingleEnded(0);
 
-// 画面モード値
-DisplayMode displayMode = gaugeS;
-static m5::touch_state_t prevTouchState;
+  float oilVol   = calculateVoltage(rawOil);
+  float waterVol = calculateVoltage(rawWater);
 
-int prev_x = -1;
-int prev_y = -1;
+  pressureValues[pressureIndex] = calculateOilPressure(oilVol);
+  tempValues    [tempIndex]     = calculateWaterTemp(waterVol);
+  pressureIndex = (pressureIndex + 1) % MAX_PRESSURE_SAMPLES;
+  tempIndex     = (tempIndex     + 1) % MAX_TEMP_SAMPLES;
 
-// FPS
-unsigned long fpsLastTime = 0;
-int fpsFrameCount = 0;
-int currentFps = 0;
+  float pressureAvg = calculateAverage(pressureValues, MAX_PRESSURE_SAMPLES);
+  float tempAvg     = calculateAverage(tempValues,     MAX_TEMP_SAMPLES);
+
+  maxPressureValue = std::max(maxPressureValue, pressureAvg);
+  maxTempValue     = std::max(maxTempValue,     tempAvg);
+
+  int oilTemp = static_cast<int>((pressureAvg + 5) * 10);
+  int rpm     = static_cast<int>(pressureAvg * 1000);
+
+  updateDisplayAndLog(pressureAvg, tempAvg,
+                      oilVol,    waterVol,
+                      rawOil,    rawWater,
+                      oilTemp,   maxOilTempTop,
+                      rpm);
+}
+
+// ————————————————————
+// 詳細モード（省略）
+// ————————————————————
+void detailsMode()
+{
+  // ここに詳細画面描画を入れる
+}
+
+// ————————————————————
+// loop()
+// ————————————————————
 void loop()
 {
   static unsigned long lastSampleTime = 0;
-  static unsigned long lastUpdateTime = 0;
   unsigned long currentMillis = millis();
 
-  gaugeMode();  // ゲージモードを描画する関数
-  lastUpdateTime = currentMillis;  // 更新時刻を記録
+  gaugeMode();
 
-  // 照度関連
-  if (currentMillis - lastSampleTime >= 500)
-  {
+  // 照度関連更新
+  if (currentMillis - lastSampleTime >= 500) {
     luxManager.updateLuxSamples();
-    float averageLux = luxManager.calculateAverageLux();
-    // 照度によって画面の明るさを調整
-    // 引数: 現在の照度, 最小照度, 最大照度, 最小明るさ, 最大明るさ
-    // int brightness = map(averageLux, 0, 100, 50, 150);
-
-    // // 滑らかに明るさを変更
-    // if (M5.Lcd.getBrightness() != brightness)
-    // {
-    //   M5.Lcd.setBrightness(brightness);
-    // }
-
-    if (IS_DEBUG)
-    {
-      Serial.printf("-- LuxManager -------------");
-      // Serial.printf("Average Lux: %.2f lx | Brightness: %d\n", averageLux, brightness);
-      Serial.printf("---------------------------");
-    }
     lastSampleTime = currentMillis;
   }
 
-  // --- FPS計測 ---
+  // FPS計測＆シリアル出力
   fpsFrameCount++;
-  if (millis() - fpsLastTime >= 1000) {
-    currentFps = fpsFrameCount;
+  if (currentMillis - fpsLastTime >= 1000) {
+    currentFps    = fpsFrameCount;
     fpsFrameCount = 0;
-    fpsLastTime = millis();
-
+    fpsLastTime   = currentMillis;
     Serial.printf("FPS: %d\n", currentFps);
   }
 }
