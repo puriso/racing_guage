@@ -13,8 +13,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 
 ### 概要
 このプロジェクトは、**M5Stack CoreS3** と **ADS1015** ADC を用いて、Defi 製センサ **PDF00903S**・**PDF00703S** および車両の **回転数パルス信号** を表示する車載用マルチメーターです。  
-
-純正メーターでは不十分な古い車両や、サーキットでの簡易モニタリング用途に最適です。  
+サーキットでの簡易モニタリング用途に最適化しています。
 
 ### 主な機能
 - 油圧・燃圧・ブースト (0–10 bar) 半円アナログメーター  
@@ -23,7 +22,6 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 - 回転数：50ms 間隔でサンプリング、シフトランプ設定可能  
 - 10Hz 更新のセンサログ出力（Serial または microSD）  
 - 自動輝度調整（オプション／GC0308 ALS対応）  
-- 設定は `config.h` にて簡単に切替可能  
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考                     |
@@ -33,7 +31,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 | 圧力センサ       | **PDF00903S** (Defi)              | CH0 / 0.5 – 4.5 V        |
 | 温度センサ1      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V        |
 | 温度センサ2      | **PDF00703S** (Defi)              | CH2 / 0.5 – 4.5 V        |
-| RPM入力信号      | -                                | CH3 / 0–5V パルス        |
+| RPM入力信号      | レブランプ付き                                | CH3 / 0–5V パルス        |
 | 電源             | 5V                               | CoreS3 USB経由           |
 
 > 📌 詳しい配線図は後日追加予定です。
