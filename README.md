@@ -3,44 +3,82 @@
 
 A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays:
 
-* **Oil / Fuel / Boost Pressure** via **Defi PDF00903S** (0 – 10 bar, 0.5 – 4.5 V)  
-* **Oil / Water Temperature** via **Defi PDF00703S** (–40 – 150 °C, 0.5 – 4.5 V)  
-* **Engine RPM** via a 0–5 V pulse signal (frequency-to-voltage converter or direct digital capture)  
+* **Oil / Fuel / Boost Pressure** via **Defi PDF00903S** (0 – 10 bar, 0.5 – 4.5 V)  
+* **Oil / Water Temperature** via **Defi PDF00703S** (–40 – 150 °C, 0.5 – 4.5 V)  
+* **Engine RPM** via a 0–5 V pulse signal (frequency-to-voltage converter or direct digital capture)
 
 ---
 
-## 日本語 README
+## 📘 日本語 README
 
 ### 概要
-M5Stack CoreS3 と ADS1015 ADC を用いて、Defi 製センサ **PDF00903S**・**PDF00703S** および ECU/ディストリビューター等からの **回転数パルス信号** をリアルタイム表示する車載メーターです。純正メーターが不足する車両の追加計器や、サーキット走行時の簡易データロガーとして利用できます。  
-SVG や GUI テーマはすべて **M5GFX** で描画し、30 FPS を目標に最適化しています。
+このプロジェクトは、**M5Stack CoreS3** と **ADS1015** ADC を用いて、Defi 製センサ **PDF00903S**・**PDF00703S** および車両の **回転数パルス信号** を表示する車載用マルチメーターです。  
+
+純正メーターでは不十分な古い車両や、サーキットでの簡易モニタリング用途に最適です。  
 
 ### 主な機能
 - 油圧・燃圧・ブースト (0–10 bar) 半円アナログメーター  
-- 油温 / 水温 (–40–150 °C) デジタル＋バー表示  
-- 10 Hz 更新の数値ログ（Serial または microSD）  
-- 回転数 50 ms サンプリング、シフトランプ点灯域を設定可能  
-- 自動輝度調整（オプション／GC0308 ALS）  
-- コンフィグは `config.h` でワンタッチ切替
+  - 本リポジトリでは **油圧**・**油温** を実装済み
+- 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
+- 回転数：50ms 間隔でサンプリング、シフトランプ設定可能  
+- 10Hz 更新のセンサログ出力（Serial または microSD）  
+- 自動輝度調整（オプション／GC0308 ALS対応）  
+- 設定は `config.h` にて簡単に切替可能  
 
 ### ハードウェア構成
-| モジュール | 型番 / 仕様 | 備考 |
-| ---------- | ---------- | ---- |
-| MCU | **M5Stack CoreS3** (ESP32-S3, 2.0 インチ IPS) | USB-C, Grove 端子 |
-| ADC | **ADS1015** 12 bit, I²C, 4ch | アナログセンサ用 |
-| 圧力センサ | **PDF00903S** (Defi) | CH0 (0.5 – 4.5 V) |
-| 温度センサ | **PDF00703S** (Defi) | CH1 (0.5 – 4.5 V) |
-| RPM入力 | 0–5 V 方形波 → 分圧 3.3 V | CH3 or GPIO 3 |
-| 電源 | 5 V (シガー/USB) | CoreS3 経由で給電 |
+| モジュール       | 型番 / 仕様                       | 備考                     |
+|------------------|----------------------------------|--------------------------|
+| MCU              | **M5Stack CoreS3** (ESP32-S3)    | USB-C, 2.0インチ IPS LCD |
+| ADC              | **ADS1015** 12bit / I²C / 4ch     | アナログ入力             |
+| 圧力センサ       | **PDF00903S** (Defi)              | CH0 / 0.5 – 4.5 V        |
+| 温度センサ1      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V        |
+| 温度センサ2      | **PDF00703S** (Defi)              | CH2 / 0.5 – 4.5 V        |
+| RPM入力信号      | -                                | CH3 / 0–5V パルス        |
+| 電源             | 5V                               | CoreS3 USB経由           |
 
-> **配線図**は `docs/wiring.svg` を参照してください。  
->   センサ GND と CoreS3 GND は一点接地するとノイズに強くなります。
+> 📌 詳しい配線図は後日追加予定です。
 
-### ソフトウェア要件
-- **Arduino IDE 2.x** or **PlatformIO**  
-- ESP32 Arduino 3.0.0 以降  
-- ライブラリ: `M5CoreS3`, `M5GFX`, `Adafruit_ADS1X15`, `ESP32TimerInterrupt`
+---
 
-```bash
-# PlatformIO ビルド例
-pio run -e m5stack-cores3 -t upload -t monitor
+## English README
+
+### Overview
+This project turns an **M5Stack CoreS3** and **ADS1015 ADC** into a simple yet powerful multi-gauge that reads:
+
+- **Oil / Fuel / Boost Pressure** using **Defi PDF00903S** (0.5–4.5 V, 0–10 bar)  
+- **Oil / Water Temperature** using **Defi PDF00703S** (0.5–4.5 V, –40 to 150°C)  
+- **Engine RPM** using a 0–5V pulse input  
+
+Perfect for vintage cars lacking modern instrumentation or for lightweight track-day data monitoring.
+
+### Features
+- Semi-circular analog gauge (0–10 bar, pressure)
+  - In this repository, **oil pressure** and **oil temperature** are implemented.
+- Digital + bar graph temperature display  
+- RPM sampling every 50 ms, with configurable shift-light trigger  
+- 10 Hz data logging to Serial or SD  
+- Optional ambient light auto dimming (via GC0308 ALS)  
+- All parameters configurable in `config.h`  
+
+### Hardware Configuration
+| Module           | Part / Spec                    | Notes                   |
+|------------------|-------------------------------|-------------------------|
+| MCU              | **M5Stack CoreS3** (ESP32-S3)  | 2.0" IPS, USB-C         |
+| ADC              | **ADS1015** 12-bit, I²C, 4ch    | Analog signal input     |
+| Pressure Sensor  | **PDF00903S** (Defi)           | CH0, 0.5–4.5V           |
+| Temp Sensor 1    | **PDF00703S** (Defi)           | CH1, 0.5–4.5V           |
+| Temp Sensor 2    | **PDF00703S** (Defi)           | CH2, 0.5–4.5V           |
+| RPM Input        | -                              | CH3, 0–5V pulse         |
+| Power Supply     | 5V                             | Powered via USB         |
+
+> 📌 Detailed wiring diagrams will be added soon.
+
+---
+
+### License
+This project is licensed under the **MIT License**.  
+Use in vehicles is at your own risk—always validate sensor readings before driving.
+
+---
+
+🚗 Built for performance, track use, and hobbyist tuning.
