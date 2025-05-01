@@ -1,4 +1,4 @@
-const bool IS_DEBUG = true;  // デバッグモード
+const bool IS_DEBUG = false;  // デバッグモード
 
 #include <Adafruit_ADS1X15.h>
 #include <M5CoreS3.h>
@@ -30,14 +30,12 @@ LuxManager luxManager;
 const int GRAPH_WIDTH = 320;
 const int GRAPH_HEIGHT = 40;
 
-const uint32_t MAIN_BACKGROUND_COLOR = 0x18E3;
-
 Adafruit_ADS1015 ads;
 M5Canvas oilPressCanvas(&canvas);
 M5Canvas waterTempCanvas(&canvas);
 
 const float SUPPLY_VOLTAGE = 5.0;           // 基準電圧 (5V)
-const unsigned long UPDATE_INTERVAL = 33;  // 更新間隔
+const unsigned long UPDATE_INTERVAL = 1;  // 更新間隔
 
 const int MAX_PRESSURE_SAMPLES = 1;  // 油圧のサンプル数
 const int MAX_TEMP_SAMPLES = 10;     // 水温のサンプル数
@@ -66,9 +64,6 @@ void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop)
   const int MIN_DISPLAY_VALUE = 80;
   const float MAX_MIN_DIFF = MAX_DISPLAY_VALUE - MIN_DISPLAY_VALUE;
   const int ALERT_THRESHOLD = 120;
-
-  // 背景クリア
-  canvas.fillSprite(COLOR_BLACK);
 
   // バー位置・サイズ
   const int barX = 20;     // バーの左端X座標
@@ -106,10 +101,11 @@ void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop)
   }
 
   // メモリ
-  canvas.setTextColor(COLOR_WHITE);
   const int memValues[] = { 80, 90, 100, 110, 120, 130 };
   const int memCount = sizeof(memValues) / sizeof(memValues[0]);
 
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setFont(&fonts::Font0);
   for (int i = 0; i < memCount; i++)
   {
     float ratio = (float)(memValues[i] - MIN_DISPLAY_VALUE) / MAX_MIN_DIFF;  // メモリの相対位置
@@ -141,7 +137,7 @@ void drawOilTempTopBar(M5Canvas &canvas, int OilTempTop, int maxOilTempTop)
   // 右側に絶対値を表示
   char OilTempTopStrings[3];
   sprintf(OilTempTopStrings, "%d", OilTempTop);
-  canvas.drawRightString(OilTempTopStrings, barW + (GRAPH_WIDTH - barW) - 1 , 5, &FreeSansBold24pt7b);
+  canvas.drawRightString(OilTempTopStrings, barW + (LCD_WIDTH - barW) - 1 , 5, &FreeSansBold24pt7b);
 
 }
 
@@ -211,62 +207,61 @@ void drawMainValue(int spriteWidth, const char *text, int spacing, int y)
   }
 }
 
-// 表示とログ更新
-void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater, int16_t maxOilTempTop) {
+// RPM表示用のテキスト描画
+// 引数 rpm, x, y, fontは、それぞれ回転数、X座標、Y座標、フォントを指定
+void drawRPMValue(int rpm, int x, int y, const lgfx::IFont* font)
+{
+  char rpmString[10];
+  sprintf(rpmString, "%d", rpm);
+  canvas.drawCenterString(rpmString, x , y, font);
+}
 
+// 表示とログ更新
+void updateDisplayAndLog(float pressureAvg, float waterTempAverage, float oilVoltage, float waterVoltage, int16_t rawOil, int16_t rawWater, int16_t oilTemp, int16_t maxOilTempTop, int16_t rpm) {
+  canvas.deleteSprite();   // スプライトを削除
+  canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
   // レブリミット
-  int rpm = pressureAvg * 1000;
   if (rpm >= 8900)
   {
-    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
     canvas.fillSprite(COLOR_RED);
+    canvas.setTextColor(COLOR_WHITE);
+    canvas.setTextSize(2);
+    drawRPMValue(rpm, LCD_WIDTH / 2, 20, &fonts::Font7);
     canvas.pushSprite(0, 0);  // 表示位置 (x, y)
     return;
-  } else if (rpm >= 8700)
+  } else if (rpm >= 8400)
   {
-    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
     canvas.fillSprite(COLOR_YELLOW);
+    canvas.setTextColor(COLOR_BLACK);
+    canvas.setTextSize(2);
+    drawRPMValue(rpm, LCD_WIDTH / 2, 20, &fonts::Font7);
     canvas.pushSprite(0, 0);  // 表示位置 (x, y)
     return;
+  }else{
+    canvas.fillSprite(COLOR_BLACK);
+    canvas.setTextColor(COLOR_WHITE);
+    canvas.setTextSize(0);
   }
-
-  canvas.fillSprite(MAIN_BACKGROUND_COLOR);
 
   // 油温
-  canvas.createSprite(320, 60);
-  canvas.fillSprite(COLOR_BLACK);
-  // OilTempTop
-  int OilTempTop = (pressureAvg + 5) * 10;
-  if (OilTempTop > maxOilTempTop)
+  if (oilTemp > maxOilTempTop)
   {
-    maxOilTempTop = OilTempTop;
+    maxOilTempTop = oilTemp;
   }
-  drawOilTempTopBar(canvas, OilTempTop, maxOilTempTop);
-  canvas.pushSprite(0, 0); // 表示位置 (x, y)
+  drawOilTempTopBar(canvas, oilTemp, maxOilTempTop);
 
-  // 油圧
+  // 油圧表示
+  drawFillArcMeter(canvas, pressureAvg, 0.0, 10.0, 8.0, RED, "BAR", "OIL.P", maxPressureValue, 0.5, true, 0, 60);
+
+  // 水温表示
+  drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0, false, 160, 60);
+
+  // RPM表示
   canvas.setTextColor(COLOR_WHITE);
-  canvas.setTextSize(2);
-  canvas.setFont(&FreeSansBold24pt7b);
-  canvas.setCursor(0, 0);
-  drawMainValue(LCD_WIDTH, "OIL PRESSURE", 5, 10);  // 中央配置
+  drawRPMValue(rpm, LCD_WIDTH / 2, 70, &fonts::Font0);
+  canvas.drawCenterString("RPM", LCD_WIDTH / 2, 80);
 
-  // 水温
-  canvas.setTextColor(COLOR_WHITE);
-  canvas.setTextSize(2);
-  canvas.setFont(&FreeSansBold24pt7b);
-  canvas.setCursor(160, 0);
-  drawMainValue(LCD_WIDTH, "WATER TEMP", 5, 10);  // 中央配置
-
-  // 油圧名表示
-  canvas.createSprite(160, 180);
-  drawFillArcMeter(canvas, pressureAvg, 0.0, 10.0, 8.0, RED, "BAR", "OIL.P", maxPressureValue, 0.5, true);
-  canvas.pushSprite(0, 60);
-
-  // 水温名表示
-  canvas.createSprite(160, 180);
-  drawFillArcMeter(canvas, waterTempAverage, 50.0, 110, 98, RED, "Celsius", "WATER.T", maxTempValue, 5.0, false);
-  canvas.pushSprite(160, 60);
+  canvas.pushSprite(0, 0);  // 表示位置 (x, y)
 
   if (IS_DEBUG)
   {
@@ -348,14 +343,10 @@ void gaugeMode()
   maxPressureValue = max(maxPressureValue, pressureAverage);  // 最大油圧値を更新
   maxTempValue = max(maxTempValue, tempAverage);              // 最大水温値を更新
 
-  if (!isTempOverThreshold && tempAverage >= 98)
-  {
-    isTempOverThreshold = true;
-    M5.Speaker.setVolume(100);
-    M5.Speaker.tone(3000, 2000);
-  }
+  int oilTemp = (pressureAverage + 5) * 10;
+  int rpm = pressureAverage * 1000;
 
-  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater, maxOilTempTop);
+  updateDisplayAndLog(pressureAverage, tempAverage, oilPressureVoltage, waterTempVoltage, rawOil, rawWater, oilTemp, maxOilTempTop, rpm);
 }
 
 void detailsMode()
@@ -433,45 +424,11 @@ int fpsFrameCount = 0;
 int currentFps = 0;
 void loop()
 {
-  CoreS3.update();
-
-  auto touched = CoreS3.Touch.getDetail();
-  // タッチされた場合
-  if (touched.isPressed()) {
-    // 次のディスプレイモードへ
-    displayMode = static_cast<DisplayMode>((displayMode + 1) % 2);
-    Serial.printf("Display Mode: %d\n", displayMode);
-    prevTouchState = touched.state;
-    delay(100);
-  }
-
   static unsigned long lastSampleTime = 0;
   static unsigned long lastUpdateTime = 0;
   unsigned long currentMillis = millis();
 
-  switch (displayMode) {
-    case gaugeS:
-      // ゲージ表示
-      if (currentMillis - lastUpdateTime >= UPDATE_INTERVAL) {
-        gaugeMode();  // ゲージモードを描画する関数
-      }
-      break;
-
-    case DETAILS:
-      // 詳細表示
-      detailsMode();  // 詳細表示を描画する関数
-      break;
-
-    //case ATTACK:
-    //  // アタック表示
-    //  //attackMode();  // アタック表示を描画する関数
-    //  break;
-
-    //default:
-    //  // 未知のモード
-    //  break;
-  }
-
+  gaugeMode();  // ゲージモードを描画する関数
   lastUpdateTime = currentMillis;  // 更新時刻を記録
 
   // 照度関連
@@ -505,9 +462,6 @@ void loop()
     fpsFrameCount = 0;
     fpsLastTime = millis();
 
-    if (IS_DEBUG) {
-      Serial.printf("FPS: %d\n", currentFps);
-    }
+    Serial.printf("FPS: %d\n", currentFps);
   }
-  delay(1);
 }
