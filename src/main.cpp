@@ -1,229 +1,267 @@
 // ────────────────────── 設定 ──────────────────────
-// デバッグモード切替
-const bool IS_DEBUG = true;
+const bool DEBUG_MODE_ENABLED = true;
 
-// ── 標準／ライブラリ
+// ── センサー接続可否（false にするとその項目は常に 0 表示） ──
+constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
+constexpr bool SENSOR_WATER_TEMP_PRESENT    = false;
+constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
+constexpr bool SENSOR_RPM_PRESENT           = false;
+constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = false;
+
+// ── 標準／ライブラリ ──
+#include <Arduino.h>
 #include <Adafruit_ADS1X15.h>
 #include <M5CoreS3.h>
 #include <M5GFX.h>
 #include <Wire.h>
 #include <algorithm>
 #include <cmath>
-#include <cstring>            // memcpy
+#include <cstring>
 
-#include "DrawFillArcMeter.h" // 半円メーター描画
-// #include "ShiftLamp.h"      // 未使用なら外してもOK
+#include "DrawFillArcMeter.h"               // 半円メーター描画
 
-// 色設定 (18bitカラー)
-const uint32_t COLOR_WHITE  = M5.Lcd.color888(255,255,255);
-const uint32_t COLOR_BLACK  = M5.Lcd.color888(0,0,0);
-const uint32_t COLOR_ORANGE = M5.Lcd.color888(255,165,0);
-const uint32_t COLOR_YELLOW = M5.Lcd.color888(255,255,0);
-const uint32_t COLOR_RED    = M5.Lcd.color888(255,0,0);
+// ────────────────────── RPM アナログ入力定義 ──────────────────────
+constexpr uint8_t ADS_CH_RPM         = 3;    // ADS1015 CH3 に RPM 電圧を接続
+constexpr float   RPM_VOLTAGE_MIN    = 0.5f; // ここを 0 rpm とみなす
+constexpr float   RPM_VOLTAGE_MAX    = 4.5f; // ここを MAX_RPM とみなす
+constexpr int     RPM_MAX_RPM        = 9000; // スケール上の最大回転数
 
-// LCDサイズ
-const int LCD_WIDTH  = 320;
-const int LCD_HEIGHT = 240;
+inline int convertVoltageToRpm(float voltage)
+{
+  if (voltage <= RPM_VOLTAGE_MIN) return 0;
+  if (voltage >= RPM_VOLTAGE_MAX) return RPM_MAX_RPM;
+  float ratio = (voltage - RPM_VOLTAGE_MIN) /
+                (RPM_VOLTAGE_MAX - RPM_VOLTAGE_MIN);
+  return static_cast<int>(ratio * RPM_MAX_RPM + 0.5f);
+}
 
-// ── ALS/輝度自動制御 ───────────────────────────────
-enum BrightnessMode { DAY, DUSK, NIGHT };
-BrightnessMode brightnessMode = DAY;
+// ── 色設定 (18 bit) ──
+constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
+constexpr uint32_t COLOR_BLACK  = M5.Lcd.color888(0,   0,   0);
+constexpr uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0);
+constexpr uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);
+constexpr uint32_t COLOR_RED    = M5.Lcd.color888(255,   0, 0);
 
-// lux しきい値 (要環境キャリブレーション)
-constexpr uint32_t LUX_DAY  = 15;   // これ以上→昼
-constexpr uint32_t LUX_DUSK = 10;    // これ未満→夜
+// ── 画面サイズ ──
+constexpr int LCD_WIDTH  = 320;
+constexpr int LCD_HEIGHT = 240;
 
-// バックライト値 (0-255)
-constexpr uint8_t B_DAY   = 255;
-constexpr uint8_t B_DUSK  = 200;
-constexpr uint8_t B_NIGHT = 60;
+// ── ALS/輝度自動制御 ──
+enum class BrightnessMode { Day, Dusk, Night };
+BrightnessMode currentBrightnessMode = BrightnessMode::Day;
 
-// 輝度: 中央値用バッファ
-constexpr int MEDIAN_BUF = 10;       // 約1分 (60 フレーム/秒想定)
-uint32_t luxBuf[MEDIAN_BUF] = {0};
-int      luxIdx             = 0;
+constexpr uint32_t LUX_THRESHOLD_DAY  = 15;
+constexpr uint32_t LUX_THRESHOLD_DUSK = 10;
 
-// ── M5 & GFX オブジェクト
+constexpr uint8_t  BACKLIGHT_DAY   = 255;
+constexpr uint8_t  BACKLIGHT_DUSK  = 200;
+constexpr uint8_t  BACKLIGHT_NIGHT =  60;
+
+constexpr int MEDIAN_BUFFER_SIZE = 10;
+uint32_t luxSampleBuffer[MEDIAN_BUFFER_SIZE] = {};
+int      luxSampleIndex  = 0;
+
+// ── M5 & GFX ──
 M5GFX    display;
-M5Canvas canvas(&display);
+M5Canvas mainCanvas(&display);
 
-// ── ADS1015
-Adafruit_ADS1015 ads;
+// ── ADS1015 ──
+Adafruit_ADS1015 adsConverter;
 
-// メーター用キャンバス（必要なら）
-M5Canvas oilPressCanvas(&canvas);
-M5Canvas waterTempCanvas(&canvas);
+// ── センサリング用バッファ ──
+constexpr int PRESSURE_SAMPLE_SIZE     = 1;
+constexpr int WATER_TEMP_SAMPLE_SIZE   = 10;
+constexpr int OIL_TEMP_SAMPLE_SIZE     = 10;
 
-// センササンプルバッファ
-const int MAX_PRESSURE_SAMPLES = 1;
-const int MAX_TEMP_SAMPLES     = 10;
-float pressureValues[MAX_PRESSURE_SAMPLES] = {0};
-float tempValues    [MAX_TEMP_SAMPLES]     = {0};
-int   pressureIndex = 0;
-int   tempIndex     = 0;
+float oilPressureSamples[PRESSURE_SAMPLE_SIZE]          = {};
+float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE]   = {};
+float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE]       = {};
 
-// 最大値トラッキング
-float maxPressureValue = 0.0f;
-float maxTempValue     = 0.0f;
-int   maxOilTempTop    = 0;
+int oilPressureSampleIndex      = 0;
+int waterTemperatureSampleIndex = 0;
+int oilTemperatureSampleIndex   = 0;
 
-// 電圧変換パラメータ
-const float SUPPLY_VOLTAGE     = 5.0f;
-const float R25                = 10000.0f;
-const float B_CONSTANT         = 3380.0f;
-const float T25                = 298.15f;
-const float REFERENCE_RESISTOR = 10000.0f;
+float recordedMaxOilPressure = 0.0f;
+float recordedMaxWaterTemp   = 0.0f;
+int   recordedMaxOilTempTop  = 0;
 
-// ALS 初期化パラメータ
-Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
+// ── 電圧→物理量変換定数 ──
+constexpr float SUPPLY_VOLTAGE          = 5.0f;
+constexpr float THERMISTOR_R25          = 10000.0f;
+constexpr float THERMISTOR_B_CONSTANT   = 3380.0f;
+constexpr float ABSOLUTE_TEMPERATURE_25 = 298.15f;
+constexpr float SERIES_REFERENCE_RES    = 10000.0f;
 
-// FPS 用カウンタ
-unsigned long fpsLastTime   = 0;
-int           fpsFrameCount = 0;
-int           currentFps    = 0;
+// ── LTR-553 初期化パラメータ ──
+Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
-// 表示モード（未使用なら削除可）
-enum DisplayMode { gaugeS, DETAILS, ATTACK };
-DisplayMode displayMode = gaugeS;
-static m5::touch_state_t prevTouchState;
+// ── FPS 計測 ──
+unsigned long previousFpsTimestamp   = 0;
+int           frameCounterPerSecond  = 0;
+int           currentFramesPerSecond = 0;
 
 // ────────────────────── プロトタイプ ──────────────────────
-void drawOilTempTopBar(M5Canvas &canvas, int oilTemp, int maxOilTemp);
-void updateDisplayAndLog(float pressureAvg, float waterTempAvg,
+void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp);
+void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp, int16_t rpm);
-void pushGaugeSprite();
-void fetchSensorData();
+void updateGauges();
+void acquireSensorData();
 
-// ALS/輝度制御
-uint32_t sampleLuxWithoutBacklight();
-void adjustBrightness();
+uint32_t measureLuxWithoutBacklight();
+void     updateBacklightLevel();
 
 // ────────────────────── ユーティリティ ──────────────────────
-inline float calculateVoltage(int16_t rawADC) {
-  return (rawADC * 6.144f) / 2047.0f;
+inline float convertAdcToVoltage(int16_t rawAdc)
+{
+  return (rawAdc * 6.144f) / 2047.0f;
 }
 
-inline float calculateOilPressure(float voltage) {
-  return (voltage > 0.5f)
-    ? 250.0f * (voltage - 0.5f) / 100.0f
-    : 0.0f;
+inline float convertVoltageToOilPressure(float voltage)
+{
+  return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;   // 0.5 V offset, 2.5 bar/V
 }
 
-inline float calculateWaterTemp(float voltage) {
-  float r  = REFERENCE_RESISTOR * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
-  float tK = B_CONSTANT / (log(r / R25) + B_CONSTANT / T25);
-  return std::isnan(tK) ? 200.0f : tK - 273.15f;
+inline float convertVoltageToTemp(float voltage)
+{
+  float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
+  float kelvin     = THERMISTOR_B_CONSTANT /
+                     (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
+  return std::isnan(kelvin) ? 200.0f : kelvin - 273.15f;
 }
 
-inline float calculateAverage(const float vals[], int n) {
-  float sum = 0;
-  for (int i = 0; i < n; ++i) sum += vals[i];
-  return sum / n;
+template <size_t N>
+inline float calculateAverage(const float (&values)[N])
+{
+  float sum = 0.0f;
+  for (float v : values) sum += v;
+  return sum / static_cast<float>(N);
 }
 
-void drawRPMValue(int rpm, int x, int y, const lgfx::IFont* font) {
-  char buf[10];
-  sprintf(buf, "%d", rpm);
-  canvas.drawCenterString(buf, x, y, font);
+void drawRpmValue(int rpm, int x, int y, const lgfx::IFont* font)
+{
+  char buffer[12];
+  sprintf(buffer, "%d", rpm);
+  mainCanvas.drawCenterString(buffer, x, y, font);
+}
+
+// ────────────────────── ★ ADC セトリング付き読み取り ──────────────────────
+constexpr uint32_t ADC_SETTLING_US = 50;             // 残留電荷クリア待ち
+int16_t readAdcWithSettling(uint8_t ch)
+{
+  adsConverter.readADC_SingleEnded(ch);              // ダミー変換
+  delayMicroseconds(ADC_SETTLING_US);                // セトリング待ち
+  return adsConverter.readADC_SingleEnded(ch);       // 本変換
+}
+
+
+// ────────────────────── ★ RPM 読み取り関数 ──────────────────────
+int readRpmFromAdc()
+{
+  if (!SENSOR_RPM_PRESENT) return 0;
+
+  readAdcWithSettling(ADS_CH_RPM);
+
+  int16_t raw  = adsConverter.readADC_SingleEnded(ADS_CH_RPM);
+  float   volt = convertAdcToVoltage(raw);
+  int     rpm  = SENSOR_RPM_PRESENT ? convertVoltageToRpm(volt) : 0;
+
+  /* デバッグ出力は任意 */
+  if (DEBUG_MODE_ENABLED) {
+    static uint32_t dbgTimer = 0;
+    if (millis() - dbgTimer >= 500) {
+      Serial.printf("[RPM] V=%.3f → %d rpm\n", volt, rpm);
+      dbgTimer = millis();
+    }
+  }
+  return rpm;
 }
 
 // ────────────────────── 画面更新＋ログ ──────────────────────
-void updateDisplayAndLog(float pressureAvg, float waterTempAvg,
+void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp, int16_t rpm)
 {
-  canvas.deleteSprite();
-  canvas.clear();
+  mainCanvas.deleteSprite();
+  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
+  mainCanvas.fillSprite(COLOR_BLACK);
+  mainCanvas.setTextColor(COLOR_WHITE);
 
-  // レブリミット (例: 8850 以上で赤)
-  if (rpm >= 8850) {
-    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
-    canvas.fillSprite(COLOR_RED);
-    canvas.setTextColor(COLOR_WHITE);
-    drawRPMValue(rpm * 0.01, LCD_WIDTH/2, 40, &fonts::Font8);
-    canvas.setFont(&fonts::Orbitron_Light_24);
-    canvas.drawCenterString("RPM / x100", LCD_WIDTH/2, 125);
-    canvas.pushSprite(0,0);
+  // レブリミット警告
+  if (rpm >= 8850 || rpm >= 8400) {
+    uint32_t bg = (rpm >= 8850) ? COLOR_RED : COLOR_YELLOW;
+    uint32_t fg = (rpm >= 8850) ? COLOR_WHITE : COLOR_BLACK;
+    mainCanvas.fillSprite(bg);
+    mainCanvas.setTextColor(fg);
+    drawRpmValue(rpm / 100, LCD_WIDTH / 2, 40, &fonts::Font8);
+    mainCanvas.setFont(&fonts::Orbitron_Light_24);
+    mainCanvas.drawCenterString("RPM / x100", LCD_WIDTH / 2, 125);
+    mainCanvas.pushSprite(0, 0);
     return;
   }
-  else if (rpm >= 8400) {
-    canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
-    canvas.fillSprite(COLOR_YELLOW);
-    canvas.setTextColor(COLOR_BLACK);
-    drawRPMValue(rpm * 0.01, LCD_WIDTH/2, 40, &fonts::Font8);
-    canvas.setFont(&fonts::Orbitron_Light_24);
-    canvas.drawCenterString("RPM / x100", LCD_WIDTH/2, 125);
-    canvas.pushSprite(0,0);
-    return;
-  }
-
-  // 通常描画
-  canvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
-  canvas.fillSprite(COLOR_BLACK);
-  canvas.setTextColor(COLOR_WHITE);
 
   // 油温バー
   if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
-  drawOilTempTopBar(canvas, oilTemp, maxOilTemp);
+  drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
 
-  // 油圧メーター
-  drawFillArcMeter(canvas, pressureAvg,  0.0f, 10.0f,  8.0f,
-                   RED, "BAR", "OIL.P", maxPressureValue,
-                   0.5f, true,   0, 60);
-  // 水温メーター
-  drawFillArcMeter(canvas, waterTempAvg, 50.0f,110.0f, 98.0f,
-                   RED, "Celsius", "WATER.T", maxTempValue,
-                   5.0f, false, 160, 60);
+  // メーター (油圧／水温)
+  drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, 10.0f,  8.0f,
+                   RED, "BAR", "OIL.P", recordedMaxOilPressure,
+                   0.5f, true,   0,   60);
+
+  drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
+                   RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
+                   5.0f, false, 160,  60);
 
   // RPM表示
-  drawRPMValue(rpm, LCD_WIDTH/2, 70, &fonts::Font0);
-  canvas.drawCenterString("RPM", LCD_WIDTH/2, 80);
+  drawRpmValue(rpm, LCD_WIDTH / 2,  70, &fonts::Font0);
+  mainCanvas.drawCenterString("RPM", LCD_WIDTH / 2,  80);
 
-  // FPS表示 (左下)
-  if(IS_DEBUG) {
-    canvas.setTextSize(1);
-    canvas.setCursor(5, LCD_HEIGHT - 12);
-    canvas.printf("FPS:%d", currentFps);
+  // FPS (左下)
+  if (DEBUG_MODE_ENABLED) {
+    mainCanvas.setTextSize(1);
+    mainCanvas.setCursor(5, LCD_HEIGHT - 12);
+    mainCanvas.printf("FPS:%d", currentFramesPerSecond);
   }
 
-  canvas.pushSprite(0,0);
+  mainCanvas.pushSprite(0, 0);
 }
 
-// ────────────────────── 油温トップバー ──────────────────────
-void drawOilTempTopBar(M5Canvas &canvas, int oilTemp, int maxOilTemp)
+// ────────────────────── 油温バー描画 ──────────────────────
+void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
 {
-  const int MIN_V = 80, MAX_V = 130, ALERT_V = 120;
-  const float RANGE = MAX_V - MIN_V;
-  const int X = 20, Y = 15, W = 210, H = 20;
+  constexpr int MIN_TEMP   =  80;
+  constexpr int MAX_TEMP   = 130;
+  constexpr int ALERT_TEMP = 120;
 
-  // 背景
-  canvas.fillRect(X+1,Y+1,W-2,H-2, 0x18E3);
+  constexpr int X = 20, Y = 15, W = 210, H = 20;
+  constexpr float RANGE = MAX_TEMP - MIN_TEMP;
 
-  // バー
-  if (oilTemp >= MIN_V) {
-    int w = (W * (oilTemp - MIN_V) / RANGE);
-    canvas.fillRect(X, Y, w, H, (oilTemp >= ALERT_V ? COLOR_RED : COLOR_WHITE));
+  canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
+
+  if (oilTemp >= MIN_TEMP) {
+    int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
+    uint32_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
+    canvas.fillRect(X, Y, barWidth, H, barColor);
   }
 
-  // メモリ＆数字
-  int marks[] = {80,90,100,110,120,130};
+  const int marks[] = {80, 90, 100, 110, 120, 130};
   canvas.setTextSize(1);
   canvas.setTextColor(COLOR_WHITE);
   canvas.setFont(&fonts::Font0);
-  for (int v : marks) {
-    int tx = X + (W * (v - MIN_V) / RANGE);
-    canvas.drawPixel(tx, Y-2, COLOR_WHITE);
-    canvas.setCursor(tx-10, Y-14);
-    canvas.printf("%d", v);
-    if (v == ALERT_V)
-      canvas.drawLine(tx, Y, tx, Y + H - 2, M5.Lcd.color888(169,169,169));
+
+  for (int m : marks) {
+    int tx = X + static_cast<int>(W * (m - MIN_TEMP) / RANGE);
+    canvas.drawPixel(tx, Y - 2, COLOR_WHITE);
+    canvas.setCursor(tx - 10, Y - 14);
+    canvas.printf("%d", m);
+    if (m == ALERT_TEMP)
+      canvas.drawLine(tx, Y, tx, Y + H - 2, M5.Lcd.color888(169, 169, 169));
   }
 
-  // 数値表示
-  canvas.setCursor(X, Y + H + 10);
-  canvas.printf("OIL.T/ Celsius, MAX:%03d", maxOilTemp);
-  char buf[5]; sprintf(buf, "%d", oilTemp);
+  canvas.setCursor(X, Y + H + 4);
+  canvas.printf("OIL.T / Celsius,  MAX:%03d", maxOilTemp);
+  char tempStr[6]; sprintf(tempStr, "%d", oilTemp);
   canvas.setFont(&FreeSansBold24pt7b);
-  canvas.drawRightString(buf, LCD_WIDTH - 1, 5);
+  canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
 }
 
 // ────────────────────── setup() ──────────────────────
@@ -232,156 +270,173 @@ void setup()
   Serial.begin(115200);
 
   M5.begin();
-  auto cfg = M5.config();
-  CoreS3.begin(cfg);
+  CoreS3.begin(M5.config());
 
   display.init();
   display.setRotation(3);
   display.setColorDepth(24);
-  display.setBrightness(B_DAY);  // 初期輝度
+  display.setBrightness(BACKLIGHT_DAY);
 
-  canvas.setColorDepth(24);
-  canvas.setTextSize(1);
+  mainCanvas.setColorDepth(24);
+  mainCanvas.setTextSize(1);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
 
   M5.Speaker.begin();
   M5.Imu.begin();
-  btStop();                     // Bluetooth off
+  btStop();   // Bluetooth OFF
 
   pinMode(9, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
-  Wire.begin(9,8);
+  Wire.begin(9, 8);
 
-  if (!ads.begin()) {
-    Serial.println("ADS1015 init failed");
-    display.setCursor(8,50);
-    display.setTextColor(COLOR_RED);
-    display.print("ADS1015 init failed!");
-    while(true);
+  if (!adsConverter.begin()) {
+    Serial.println("[ADS1015] init failed… all analog values will be 0");
   }
+  adsConverter.setDataRate(RATE_ADS1015_1600SPS);
 
-  // LTR-553 ALS 起動
-  CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
-  device_init_base_para.als_gain = LTR5XX_ALS_GAIN_48X;
-  device_init_base_para.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
+  if (SENSOR_AMBIENT_LIGHT_PRESENT) {
+    CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
+    ltr553InitParams.als_gain             = LTR5XX_ALS_GAIN_48X;
+    ltr553InitParams.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
+  }
 }
 
 // ────────────────────── ALS / 輝度制御 ──────────────────────
-// ALS 取得間隔 (フリッカー対策) ---------------
-constexpr uint32_t N_SECONDS_BETWEEN_ALS = 10; // ← ここを書き換えで自由に設定
-uint32_t sampleLuxWithoutBacklight()
-{
-  uint8_t oldB = display.getBrightness();
-  display.setBrightness(0);           // 一瞬消灯
-  delayMicroseconds(500);            // N ms
-  /* LTR-553 の ALS 取得は getAlsValue() が正しい  :contentReference[oaicite:0]{index=0} */
-  uint16_t lux16 = CoreS3.Ltr553.getAlsValue();
-  display.setBrightness(oldB);               // 復帰
+constexpr uint32_t ALS_MEASUREMENT_INTERVAL_MS = 8000;  // 8 秒
 
-  return (uint32_t)lux16;                    // uint32_t に拡張して返す
+uint32_t measureLuxWithoutBacklight()
+{
+  uint8_t prevB = display.getBrightness();
+  display.setBrightness(0);
+  delayMicroseconds(500);
+  uint32_t lux = CoreS3.Ltr553.getAlsValue();
+  display.setBrightness(prevB);
+  return lux;
 }
 
-void adjustBrightness()
+void updateBacklightLevel()
 {
-  // ① lux 取得
-  uint32_t lux = sampleLuxWithoutBacklight();
-  Serial.printf("[ALS] lux=%lu\n", lux);
+  if (!SENSOR_AMBIENT_LIGHT_PRESENT) {
+    if (currentBrightnessMode != BrightnessMode::Day) {
+      currentBrightnessMode = BrightnessMode::Day;
+      display.setBrightness(BACKLIGHT_DAY);
+    }
+    return;
+  }
 
-  // ② バッファ更新
-  luxBuf[luxIdx] = lux;
-  luxIdx = (luxIdx + 1) % MEDIAN_BUF;
+  uint32_t lux = measureLuxWithoutBacklight();
+  if (DEBUG_MODE_ENABLED) Serial.printf("[ALS] lux=%lu\n", lux);
 
-  // ③ 中央値
-  uint32_t tmp[MEDIAN_BUF];
-  memcpy(tmp, luxBuf, sizeof(tmp));
-  std::nth_element(tmp, tmp + MEDIAN_BUF/2, tmp + MEDIAN_BUF);
-  uint32_t medianLux = tmp[MEDIAN_BUF/2];
+  luxSampleBuffer[luxSampleIndex] = lux;
+  luxSampleIndex = (luxSampleIndex + 1) % MEDIAN_BUFFER_SIZE;
 
-  // ④ モード判定
+  uint32_t sorted[MEDIAN_BUFFER_SIZE];
+  memcpy(sorted, luxSampleBuffer, sizeof(sorted));
+  std::nth_element(sorted, sorted + MEDIAN_BUFFER_SIZE / 2, sorted + MEDIAN_BUFFER_SIZE);
+  uint32_t medianLux = sorted[MEDIAN_BUFFER_SIZE / 2];
+
   BrightnessMode newMode =
-      (medianLux >= LUX_DAY)  ? DAY  :
-      (medianLux >= LUX_DUSK) ? DUSK : NIGHT;
+      (medianLux >= LUX_THRESHOLD_DAY)  ? BrightnessMode::Day  :
+      (medianLux >= LUX_THRESHOLD_DUSK) ? BrightnessMode::Dusk : BrightnessMode::Night;
 
-  // ⑤ 変化時のみ反映
-  if (newMode != brightnessMode) {
-    brightnessMode = newMode;
-    uint8_t target =
-        (brightnessMode == DAY)   ? B_DAY   :
-        (brightnessMode == DUSK)  ? B_DUSK  : B_NIGHT;
-    display.setBrightness(target);
-    if (IS_DEBUG) {
-      Serial.printf("[ALS] median=%lu lux → mode=%s → brightness=%u\n",
-                    medianLux,
-                    (brightnessMode==DAY ? "DAY" :
-                     brightnessMode==DUSK? "DUSK":"NIGHT"),
-                    target);
+  if (newMode != currentBrightnessMode) {
+    currentBrightnessMode = newMode;
+    uint8_t targetB =
+        (newMode == BrightnessMode::Day)  ? BACKLIGHT_DAY  :
+        (newMode == BrightnessMode::Dusk) ? BACKLIGHT_DUSK : BACKLIGHT_NIGHT;
+    display.setBrightness(targetB);
+
+    if (DEBUG_MODE_ENABLED) {
+      const char* s =
+          (newMode == BrightnessMode::Day)  ? "DAY"  :
+          (newMode == BrightnessMode::Dusk) ? "DUSK" : "NIGHT";
+      Serial.printf("[ALS] median=%lu → mode=%s → brightness=%u\n", medianLux, s, targetB);
     }
   }
 }
 
 // ────────────────────── センサ取得 ──────────────────────
-void fetchSensorData()
+void acquireSensorData()
 {
-  int16_t rawOil   = ads.readADC_SingleEnded(1);
-  int16_t rawWater = ads.readADC_SingleEnded(0);
+  // 油圧
+  if (SENSOR_OIL_PRESSURE_PRESENT) {
+    readAdcWithSettling(1);
+    int16_t raw = adsConverter.readADC_SingleEnded(1);     // CH1: 油圧
+    oilPressureSamples[oilPressureSampleIndex] =
+        convertVoltageToOilPressure(convertAdcToVoltage(raw));
+  } else {
+    oilPressureSamples[oilPressureSampleIndex] = 0.0f;
+  }
+  oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
 
-  float oilVol   = calculateVoltage(rawOil);
-  float waterVol = calculateVoltage(rawWater);
+  // 水温
+  if (SENSOR_WATER_TEMP_PRESENT) {
+    readAdcWithSettling(0);
+    int16_t raw = adsConverter.readADC_SingleEnded(0);     // CH0: 水温
+    waterTemperatureSamples[waterTemperatureSampleIndex] =
+        convertVoltageToTemp(convertAdcToVoltage(raw));
+  } else {
+    waterTemperatureSamples[waterTemperatureSampleIndex] = 0.0f;
+  }
+  waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
 
-  pressureValues[pressureIndex] = calculateOilPressure(oilVol);
-  tempValues    [tempIndex]     = calculateWaterTemp(waterVol);
-  pressureIndex = (pressureIndex + 1) % MAX_PRESSURE_SAMPLES;
-  tempIndex     = (tempIndex     + 1) % MAX_TEMP_SAMPLES;
+  // 油温
+  if (SENSOR_OIL_TEMP_PRESENT) {
+    readAdcWithSettling(2);
+    int16_t raw = adsConverter.readADC_SingleEnded(2);     // CH2: 油温
+    oilTemperatureSamples[oilTemperatureSampleIndex] =
+        convertVoltageToTemp(convertAdcToVoltage(raw));
+  } else {
+    oilTemperatureSamples[oilTemperatureSampleIndex] = 0.0f;
+  }
+  oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
 
-  maxPressureValue = std::max(maxPressureValue,
-                              calculateAverage(pressureValues,
-                                               MAX_PRESSURE_SAMPLES));
-  maxTempValue     = std::max(maxTempValue,
-                              calculateAverage(tempValues,
-                                               MAX_TEMP_SAMPLES));
+  // 最大値更新
+  recordedMaxOilPressure =
+      std::max(recordedMaxOilPressure, calculateAverage(oilPressureSamples));
+  recordedMaxWaterTemp   =
+      std::max(recordedMaxWaterTemp,   calculateAverage(waterTemperatureSamples));
 }
 
 // ────────────────────── メーター描画 ──────────────────────
-void pushGaugeSprite()
+void updateGauges()
 {
-  float pressureAvg = calculateAverage(pressureValues, MAX_PRESSURE_SAMPLES);
-  float tempAvg     = calculateAverage(tempValues,     MAX_TEMP_SAMPLES);
+  int rpmVal = readRpmFromAdc();
+  float pressureAvg  = calculateAverage(oilPressureSamples);
+  float waterTempAvg = calculateAverage(waterTemperatureSamples);
+  float oilTempAvg   = calculateAverage(oilTemperatureSamples);
 
-  // ダミー: 任意ロジックで oilTemp/rpm を決定
-  int oilTemp = static_cast<int>((pressureAvg + 5) * 10);
-  int rpm     = static_cast<int>(pressureAvg * 1000);
+  int oilTempDisplay = static_cast<int>(oilTempAvg);
+  if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  updateDisplayAndLog(pressureAvg, tempAvg,
-                      oilTemp, maxOilTempTop,
-                      rpm);
+  recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, oilTempDisplay);
+
+  renderDisplayAndLog(pressureAvg, waterTempAvg,
+                      oilTempDisplay, recordedMaxOilTempTop,
+                      rpmVal);
 }
 
 // ────────────────────── loop() ──────────────────────
-static unsigned long lastAlsSample = 0;   // 前回 ALS を取った時刻
-constexpr uint32_t   ALS_INTERVAL_MS = 8000;  // 8 秒
 void loop()
 {
-  static unsigned long lastAlsSample = 0;
+  static unsigned long previousAlsSampleTime = 0;
   unsigned long now = millis();
 
-  // ── N 秒ごとに 1 回だけ輝度制御 ───────────────────
-  if (now - lastAlsSample >= ALS_INTERVAL_MS) {   // 8 秒以上経過した？
-    adjustBrightness();                 // 明るさ自動調整 (ALS 取得)
-    lastAlsSample = now;                // タイムスタンプ更新
+  if (now - previousAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
+    updateBacklightLevel();
+    previousAlsSampleTime = now;
   }
 
-  pushGaugeSprite();    // 画面更新
-  fetchSensorData();    // センサ取得
+  acquireSensorData();
+  updateGauges();
 
-  // FPS 計測
-  static uint32_t fpsFrameCount = 0;
-  fpsFrameCount++;
-  if (now - fpsLastTime >= 1000UL) {
-    currentFps  = fpsFrameCount;
-    if(IS_DEBUG) Serial.printf("FPS:%d\n", currentFps);
-    fpsFrameCount = 0;
-    fpsLastTime   = now;
+  frameCounterPerSecond++;
+  if (now - previousFpsTimestamp >= 1000UL) {
+    currentFramesPerSecond = frameCounterPerSecond;
+    if (DEBUG_MODE_ENABLED) Serial.printf("FPS:%d\n", currentFramesPerSecond);
+    frameCounterPerSecond = 0;
+    previousFpsTimestamp  = now;
   }
 }
