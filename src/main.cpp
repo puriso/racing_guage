@@ -162,8 +162,8 @@ void updateDisplayAndLog(float pressureAvg, float waterTempAvg,
                    5.0f, false,160,60);
 
   // RPM表示
-  drawRPMValue(rpm, LCD_WIDTH/2, 60, &fonts::Font0);
-  canvas.drawCenterString("RPM", LCD_WIDTH/2, 70);
+  drawRPMValue(rpm, LCD_WIDTH/2, 70, &fonts::Font0);
+  canvas.drawCenterString("RPM", LCD_WIDTH/2, 80);
 
   // FPS表示（左下）
   canvas.setTextSize(1);
@@ -300,27 +300,37 @@ void detailsMode()
 }
 
 // ————————————————————
-// loop()
+// loop() — 30FPS固定
 // ————————————————————
 void loop()
 {
   static unsigned long lastSampleTime = 0;
-  unsigned long currentMillis = millis();
+  static unsigned long lastFrameStart = 0;
+  const unsigned long targetFrameMs = 33;  // 1000ms/30fps ≒ 33ms
+
+  // フレーム開始時刻を取得
+  unsigned long frameStart = millis();
 
   gaugeMode();
 
   // 照度関連更新
-  if (currentMillis - lastSampleTime >= 500) {
+  if (frameStart - lastSampleTime >= 500) {
     luxManager.updateLuxSamples();
-    lastSampleTime = currentMillis;
+    lastSampleTime = frameStart;
   }
 
   // FPS計測＆シリアル出力
   fpsFrameCount++;
-  if (currentMillis - fpsLastTime >= 1000) {
+  if (frameStart - fpsLastTime >= 1000) {
     currentFps    = fpsFrameCount;
     fpsFrameCount = 0;
-    fpsLastTime   = currentMillis;
+    fpsLastTime   = frameStart;
     Serial.printf("FPS: %d\n", currentFps);
+  }
+
+  // 30FPS固定のため、残り時間を待機
+  unsigned long frameTime = millis() - frameStart;
+  if (frameTime < targetFrameMs) {
+    delay(targetFrameMs - frameTime);
   }
 }
