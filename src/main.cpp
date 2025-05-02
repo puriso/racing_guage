@@ -6,7 +6,7 @@ constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
 constexpr bool SENSOR_WATER_TEMP_PRESENT    = false;
 constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
 constexpr bool SENSOR_RPM_PRESENT           = false;
-constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = false;
+constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 // ── 標準／ライブラリ ──
 #include <Arduino.h>
