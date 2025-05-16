@@ -5,7 +5,6 @@ const bool DEBUG_MODE_ENABLED = true;
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
 constexpr bool SENSOR_WATER_TEMP_PRESENT    = false;
 constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
-constexpr bool SENSOR_RPM_PRESENT           = false;
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 // ── 標準／ライブラリ ──
@@ -19,21 +18,6 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <cstring>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
-
-// ────────────────────── RPM アナログ入力定義 ──────────────────────
-constexpr uint8_t ADS_CH_RPM         = 3;    // ADS1015 CH3 に RPM 電圧を接続
-constexpr float   RPM_VOLTAGE_MIN    = 0.5f; // ここを 0 rpm とみなす
-constexpr float   RPM_VOLTAGE_MAX    = 4.5f; // ここを MAX_RPM とみなす
-constexpr int     RPM_MAX_RPM        = 9000; // スケール上の最大回転数
-
-inline int convertVoltageToRpm(float voltage)
-{
-  if (voltage <= RPM_VOLTAGE_MIN) return 0;
-  if (voltage >= RPM_VOLTAGE_MAX) return RPM_MAX_RPM;
-  float ratio = (voltage - RPM_VOLTAGE_MIN) /
-                (RPM_VOLTAGE_MAX - RPM_VOLTAGE_MIN);
-  return static_cast<int>(ratio * RPM_MAX_RPM + 0.5f);
-}
 
 // ── 色設定 (18 bit) ──
 constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
@@ -69,7 +53,7 @@ M5Canvas mainCanvas(&display);
 Adafruit_ADS1015 adsConverter;
 
 // ── センサリング用バッファ ──
-constexpr int PRESSURE_SAMPLE_SIZE     = 1;
+constexpr int PRESSURE_SAMPLE_SIZE     = 3;
 constexpr int WATER_TEMP_SAMPLE_SIZE   = 10;
 constexpr int OIL_TEMP_SAMPLE_SIZE     = 10;
 
@@ -103,7 +87,7 @@ int           currentFramesPerSecond = 0;
 // ────────────────────── プロトタイプ ──────────────────────
 void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp);
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
-                         int16_t oilTemp, int16_t maxOilTemp, int16_t rpm);
+                         int16_t oilTemp, int16_t maxOilTemp);
 void updateGauges();
 void acquireSensorData();
 
@@ -137,13 +121,6 @@ inline float calculateAverage(const float (&values)[N])
   return sum / static_cast<float>(N);
 }
 
-void drawRpmValue(int rpm, int x, int y, const lgfx::IFont* font)
-{
-  char buffer[12];
-  sprintf(buffer, "%d", rpm);
-  mainCanvas.drawCenterString(buffer, x, y, font);
-}
-
 // ────────────────────── ★ ADC セトリング付き読み取り ──────────────────────
 constexpr uint32_t ADC_SETTLING_US = 50;             // 残留電荷クリア待ち
 int16_t readAdcWithSettling(uint8_t ch)
@@ -154,49 +131,14 @@ int16_t readAdcWithSettling(uint8_t ch)
 }
 
 
-// ────────────────────── ★ RPM 読み取り関数 ──────────────────────
-int readRpmFromAdc()
-{
-  if (!SENSOR_RPM_PRESENT) return 0;
-
-  readAdcWithSettling(ADS_CH_RPM);
-
-  int16_t raw  = adsConverter.readADC_SingleEnded(ADS_CH_RPM);
-  float   volt = convertAdcToVoltage(raw);
-  int     rpm  = SENSOR_RPM_PRESENT ? convertVoltageToRpm(volt) : 0;
-
-  /* デバッグ出力は任意 */
-  if (DEBUG_MODE_ENABLED) {
-    static uint32_t dbgTimer = 0;
-    if (millis() - dbgTimer >= 500) {
-      Serial.printf("[RPM] V=%.3f → %d rpm\n", volt, rpm);
-      dbgTimer = millis();
-    }
-  }
-  return rpm;
-}
-
 // ────────────────────── 画面更新＋ログ ──────────────────────
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
-                         int16_t oilTemp, int16_t maxOilTemp, int16_t rpm)
+                         int16_t oilTemp, int16_t maxOilTemp)
 {
   mainCanvas.deleteSprite();
   mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
   mainCanvas.fillSprite(COLOR_BLACK);
   mainCanvas.setTextColor(COLOR_WHITE);
-
-  // レブリミット警告
-  if (rpm >= 8850 || rpm >= 8400) {
-    uint32_t bg = (rpm >= 8850) ? COLOR_RED : COLOR_YELLOW;
-    uint32_t fg = (rpm >= 8850) ? COLOR_WHITE : COLOR_BLACK;
-    mainCanvas.fillSprite(bg);
-    mainCanvas.setTextColor(fg);
-    drawRpmValue(rpm / 100, LCD_WIDTH / 2, 40, &fonts::Font8);
-    mainCanvas.setFont(&fonts::Orbitron_Light_24);
-    mainCanvas.drawCenterString("RPM / x100", LCD_WIDTH / 2, 125);
-    mainCanvas.pushSprite(0, 0);
-    return;
-  }
 
   // 油温バー
   if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
@@ -210,10 +152,6 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                    RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
                    5.0f, false, 160,  60);
-
-  // RPM表示
-  drawRpmValue(rpm, LCD_WIDTH / 2,  70, &fonts::Font0);
-  mainCanvas.drawCenterString("RPM", LCD_WIDTH / 2,  80);
 
   // FPS (左下)
   if (DEBUG_MODE_ENABLED) {
@@ -403,7 +341,6 @@ void acquireSensorData()
 // ────────────────────── メーター描画 ──────────────────────
 void updateGauges()
 {
-  int rpmVal = readRpmFromAdc();
   float pressureAvg  = calculateAverage(oilPressureSamples);
   float waterTempAvg = calculateAverage(waterTemperatureSamples);
   float oilTempAvg   = calculateAverage(oilTemperatureSamples);
@@ -414,8 +351,7 @@ void updateGauges()
   recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, oilTempDisplay);
 
   renderDisplayAndLog(pressureAvg, waterTempAvg,
-                      oilTempDisplay, recordedMaxOilTempTop,
-                      rpmVal);
+                      oilTempDisplay, recordedMaxOilTempTop);
 }
 
 // ────────────────────── loop() ──────────────────────
