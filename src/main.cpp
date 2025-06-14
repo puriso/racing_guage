@@ -135,8 +135,6 @@ int16_t readAdcWithSettling(uint8_t ch)
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp)
 {
-  mainCanvas.deleteSprite();
-  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
   mainCanvas.fillSprite(COLOR_BLACK);
   mainCanvas.setTextColor(COLOR_WHITE);
 
@@ -212,11 +210,13 @@ void setup()
 
   display.init();
   display.setRotation(3);
-  display.setColorDepth(24);
+  // 16bitにすると描画バッファ転送量が減りFPS向上
+  display.setColorDepth(16);
   display.setBrightness(BACKLIGHT_DAY);
 
-  mainCanvas.setColorDepth(24);
+  mainCanvas.setColorDepth(16);
   mainCanvas.setTextSize(1);
+  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
