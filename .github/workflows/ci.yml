@@ -9,19 +9,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: リポジトリをチェックアウト
+      - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Python をセットアップ
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: pip キャッシュを復元
+      - name: Restore pip cache
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/platformio.ini') }}
           restore-keys: ${{ runner.os }}-pip-
-      - name: PlatformIO キャッシュを復元
+      - name: Restore PlatformIO cache
         uses: actions/cache@v3
         with:
           path: |
@@ -29,7 +29,7 @@ jobs:
             ~/.platformio/packages
           key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
           restore-keys: ${{ runner.os }}-pio-
-      - name: PlatformIO をインストール
+      - name: Install PlatformIO
         run: pip install platformio
-      - name: ビルド
+      - name: Build
         run: pio run -e m5stack-cores3
