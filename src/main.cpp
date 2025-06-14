@@ -300,8 +300,7 @@ void acquireSensorData()
 {
   // 油圧
   if (SENSOR_OIL_PRESSURE_PRESENT) {
-    readAdcWithSettling(1);
-    int16_t raw = adsConverter.readADC_SingleEnded(1);     // CH1: 油圧
+    int16_t raw = readAdcWithSettling(1);                  // CH1: 油圧
     oilPressureSamples[oilPressureSampleIndex] =
         convertVoltageToOilPressure(convertAdcToVoltage(raw));
   } else {
@@ -311,8 +310,7 @@ void acquireSensorData()
 
   // 水温
   if (SENSOR_WATER_TEMP_PRESENT) {
-    readAdcWithSettling(0);
-    int16_t raw = adsConverter.readADC_SingleEnded(0);     // CH0: 水温
+    int16_t raw = readAdcWithSettling(0);                  // CH0: 水温
     waterTemperatureSamples[waterTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
@@ -322,8 +320,7 @@ void acquireSensorData()
 
   // 油温
   if (SENSOR_OIL_TEMP_PRESENT) {
-    readAdcWithSettling(2);
-    int16_t raw = adsConverter.readADC_SingleEnded(2);     // CH2: 油温
+    int16_t raw = readAdcWithSettling(2);                  // CH2: 油温
     oilTemperatureSamples[oilTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
