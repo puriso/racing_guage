@@ -16,6 +16,7 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <numeric>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 
@@ -107,6 +108,8 @@ inline float convertVoltageToOilPressure(float voltage)
 
 inline float convertVoltageToTemp(float voltage)
 {
+  // センサー電圧が 0 の場合はゼロ除算を避けるため早期リターン
+  if (voltage <= 0.0f) return 200.0f;
   float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
   float kelvin     = THERMISTOR_B_CONSTANT /
                      (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
@@ -116,8 +119,7 @@ inline float convertVoltageToTemp(float voltage)
 template <size_t N>
 inline float calculateAverage(const float (&values)[N])
 {
-  float sum = 0.0f;
-  for (float v : values) sum += v;
+  float sum = std::accumulate(values, values + N, 0.0f);
   return sum / static_cast<float>(N);
 }
 
