@@ -16,6 +16,7 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <numeric>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 
@@ -108,6 +109,8 @@ inline float convertVoltageToOilPressure(float voltage)
 
 inline float convertVoltageToTemp(float voltage)
 {
+  // センサー電圧が 0 の場合はゼロ除算を避けるため早期リターン
+  if (voltage <= 0.0f) return 200.0f;
   float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
   float kelvin     = THERMISTOR_B_CONSTANT /
                      (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
@@ -117,8 +120,7 @@ inline float convertVoltageToTemp(float voltage)
 template <size_t N>
 inline float calculateAverage(const float (&values)[N])
 {
-  float sum = 0.0f;
-  for (float v : values) sum += v;
+  float sum = std::accumulate(values, values + N, 0.0f);
   return sum / static_cast<float>(N);
 }
 
@@ -301,8 +303,7 @@ void acquireSensorData()
 {
   // 油圧
   if (SENSOR_OIL_PRESSURE_PRESENT) {
-    readAdcWithSettling(1);
-    int16_t raw = adsConverter.readADC_SingleEnded(1);     // CH1: 油圧
+    int16_t raw = readAdcWithSettling(1);                  // CH1: 油圧
     oilPressureSamples[oilPressureSampleIndex] =
         convertVoltageToOilPressure(convertAdcToVoltage(raw));
   } else {
@@ -312,8 +313,7 @@ void acquireSensorData()
 
   // 水温
   if (SENSOR_WATER_TEMP_PRESENT) {
-    readAdcWithSettling(0);
-    int16_t raw = adsConverter.readADC_SingleEnded(0);     // CH0: 水温
+    int16_t raw = readAdcWithSettling(0);                  // CH0: 水温
     waterTemperatureSamples[waterTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
@@ -323,8 +323,7 @@ void acquireSensorData()
 
   // 油温
   if (SENSOR_OIL_TEMP_PRESENT) {
-    readAdcWithSettling(2);
-    int16_t raw = adsConverter.readADC_SingleEnded(2);     // CH2: 油温
+    int16_t raw = readAdcWithSettling(2);                  // CH2: 油温
     oilTemperatureSamples[oilTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
