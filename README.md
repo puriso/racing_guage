@@ -22,7 +22,6 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 - 油圧・燃圧・ブースト (0–10 bar) 半円アナログメーター  
   - 本リポジトリでは **油圧**・**油温** を実装済み
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
-- 10Hz 更新のセンサログ出力（Serial または microSD）
 - 自動輝度調整（オプション／GC0308 ALS対応）
 - 各種設定は `src/main.cpp` 冒頭の定数で変更可能
 
@@ -54,7 +53,6 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 - Semi-circular analog gauge (0–10 bar, pressure)
   - In this repository, **oil pressure** and **oil temperature** are implemented.
 - Digital + bar graph temperature display  
-- 10 Hz data logging to Serial or SD  
 - Optional ambient light auto dimming (via GC0308 ALS)
 - Settings are defined at the top of `src/main.cpp`
 
