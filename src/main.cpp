@@ -19,12 +19,13 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 
-// ── 色設定 (18 bit) ──
-constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
-constexpr uint32_t COLOR_BLACK  = M5.Lcd.color888(0,   0,   0);
-constexpr uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0);
-constexpr uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);
-constexpr uint32_t COLOR_RED    = M5.Lcd.color888(255,   0, 0);
+// ── 色設定 (16 bit) ──
+constexpr uint16_t COLOR_WHITE  = M5.Lcd.color565(255, 255, 255);
+constexpr uint16_t COLOR_BLACK  = M5.Lcd.color565(0,   0,   0);
+constexpr uint16_t COLOR_ORANGE = M5.Lcd.color565(255, 165, 0);
+constexpr uint16_t COLOR_YELLOW = M5.Lcd.color565(255, 255, 0);
+constexpr uint16_t COLOR_RED    = M5.Lcd.color565(255,   0, 0);
+constexpr uint16_t COLOR_GRAY   = M5.Lcd.color565(169, 169, 169);
 
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
@@ -190,7 +191,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
     canvas.setCursor(tx - 10, Y - 14);
     canvas.printf("%d", m);
     if (m == ALERT_TEMP)
-      canvas.drawLine(tx, Y, tx, Y + H - 2, M5.Lcd.color888(169, 169, 169));
+      canvas.drawLine(tx, Y, tx, Y + H - 2, COLOR_GRAY);
   }
 
   canvas.setCursor(X, Y + H + 4);
