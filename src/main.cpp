@@ -212,6 +212,10 @@ void setup()
   CoreS3.begin(M5.config());
   // 電源管理ICの初期化
   M5.Power.begin();
+    // LTR553 初期化（サンプルでは begin() 呼び出しが推奨されている）
+    CoreS3.Ltr553.begin(&ltr553InitParams);
+  // 電源管理ICの初期化
+  M5.Power.begin();
 
   display.init();
   display.setRotation(3);
