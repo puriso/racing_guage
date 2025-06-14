@@ -210,6 +210,8 @@ void setup()
 
   M5.begin();
   CoreS3.begin(M5.config());
+  // 電源管理ICの初期化
+  M5.Power.begin();
 
   display.init();
   display.setRotation(3);
@@ -238,6 +240,8 @@ void setup()
   adsConverter.setDataRate(RATE_ADS1015_1600SPS);
 
   if (SENSOR_AMBIENT_LIGHT_PRESENT) {
+    // LTR553 初期化（サンプルでは begin() 呼び出しが推奨されている）
+    CoreS3.Ltr553.begin(&ltr553InitParams);
     CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
     ltr553InitParams.als_gain             = LTR5XX_ALS_GAIN_48X;
     ltr553InitParams.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
