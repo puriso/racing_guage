@@ -18,6 +18,7 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <cstring>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
+#include "conversion.h"
 
 // ── 色設定 (18 bit) ──
 constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
@@ -69,13 +70,6 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
-// ── 電圧→物理量変換定数 ──
-constexpr float SUPPLY_VOLTAGE          = 5.0f;
-constexpr float THERMISTOR_R25          = 10000.0f;
-constexpr float THERMISTOR_B_CONSTANT   = 3380.0f;
-constexpr float ABSOLUTE_TEMPERATURE_25 = 298.15f;
-constexpr float SERIES_REFERENCE_RES    = 10000.0f;
-
 // ── LTR-553 初期化パラメータ ──
 Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
@@ -95,23 +89,6 @@ uint32_t measureLuxWithoutBacklight();
 void     updateBacklightLevel();
 
 // ────────────────────── ユーティリティ ──────────────────────
-inline float convertAdcToVoltage(int16_t rawAdc)
-{
-  return (rawAdc * 6.144f) / 2047.0f;
-}
-
-inline float convertVoltageToOilPressure(float voltage)
-{
-  return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;   // 0.5 V offset, 2.5 bar/V
-}
-
-inline float convertVoltageToTemp(float voltage)
-{
-  float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
-  float kelvin     = THERMISTOR_B_CONSTANT /
-                     (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
-  return std::isnan(kelvin) ? 200.0f : kelvin - 273.15f;
-}
 
 template <size_t N>
 inline float calculateAverage(const float (&values)[N])
