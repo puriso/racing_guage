@@ -75,6 +75,16 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 
 > 📌 Detailed wiring diagrams will be added soon.
 
+### テスト / Testing
+変換ヘルパー関数のユニットテストは PC 上でも実行できます。
+
+Unit tests for the conversion helpers can run natively on your PC:
+
+```bash
+pip install platformio
+platformio test -e native
+```
+
 ---
 
 ### License
