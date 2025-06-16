@@ -17,6 +17,7 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <cmath>
 #include <cstring>
 #include <numeric>
+#include <limits>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 
@@ -56,8 +57,8 @@ Adafruit_ADS1015 adsConverter;
 
 // ── センサリング用バッファ ──
 constexpr int PRESSURE_SAMPLE_SIZE     = 3;
-constexpr int WATER_TEMP_SAMPLE_SIZE   = 10;
-constexpr int OIL_TEMP_SAMPLE_SIZE     = 10;
+constexpr int WATER_TEMP_SAMPLE_SIZE   = 30;
+constexpr int OIL_TEMP_SAMPLE_SIZE     = 30;
 
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE]          = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE]   = {};
@@ -70,6 +71,17 @@ int oilTemperatureSampleIndex   = 0;
 float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
+
+// ── 表示キャッシュ ──
+struct DisplayCache {
+  float  pressureAvg;
+  float  waterTempAvg;
+  int16_t oilTemp;
+  int16_t maxOilTemp;
+} displayCache = {std::numeric_limits<float>::quiet_NaN(),
+                  std::numeric_limits<float>::quiet_NaN(),
+                  INT16_MIN, INT16_MIN};
+// 初回描画を強制するため NaN と最小値で初期化しておく
 
 // ── 電圧→物理量変換定数 ──
 constexpr float SUPPLY_VOLTAGE          = 5.0f;
@@ -138,24 +150,48 @@ int16_t readAdcWithSettling(uint8_t ch)
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp)
 {
-  mainCanvas.fillSprite(COLOR_BLACK);
+  // 描画領域計算
+  const int TOPBAR_Y = 0, TOPBAR_H = 50;
+  const int GAUGE_H  = 170;
+
+  // 変化検知。初回は必ず描画するため NaN/最小値を使用
+  bool oilChanged = (displayCache.oilTemp == INT16_MIN) ||
+                    (oilTemp != displayCache.oilTemp) ||
+                    (maxOilTemp != displayCache.maxOilTemp);
+  bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
+                         fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
+  bool waterChanged    = std::isnan(displayCache.waterTempAvg) ||
+                         fabs(waterTempAvg - displayCache.waterTempAvg) > 0.01f;
+
   mainCanvas.setTextColor(COLOR_WHITE);
 
-  // 油温バー
-  if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
-  drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
+  if (oilChanged) {
+    mainCanvas.fillRect(0, TOPBAR_Y, LCD_WIDTH, TOPBAR_H, COLOR_BLACK);
+    if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
+    drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
+    displayCache.oilTemp    = oilTemp;
+    displayCache.maxOilTemp = maxOilTemp;
+  }
 
-  // メーター (油圧／水温)
-  drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, 10.0f,  8.0f,
-                   RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                   0.5f, true,   0,   60);
+  if (pressureChanged) {
+    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, 10.0f,  8.0f,
+                     RED, "BAR", "OIL.P", recordedMaxOilPressure,
+                     0.5f, true,   0,   60);
+    displayCache.pressureAvg = pressureAvg;
+  }
 
-  drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
-                   RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                   5.0f, false, 160,  60);
+  if (waterChanged) {
+    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
+                     RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
+                     5.0f, false, 160,  60);
+    displayCache.waterTempAvg = waterTempAvg;
+  }
 
   // FPS (左下)
   if (DEBUG_MODE_ENABLED) {
+    mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
     mainCanvas.setTextSize(1);
     mainCanvas.setCursor(5, LCD_HEIGHT - 12);
     mainCanvas.printf("FPS:%d", currentFramesPerSecond);
@@ -174,7 +210,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
   constexpr int X = 20, Y = 15, W = 210, H = 20;
   constexpr float RANGE = MAX_TEMP - MIN_TEMP;
 
-  canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
+  // canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
