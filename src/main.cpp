@@ -210,7 +210,8 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
   constexpr int X = 20, Y = 15, W = 210, H = 20;
   constexpr float RANGE = MAX_TEMP - MIN_TEMP;
 
-  // canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
+  // 水温ゲージと同じグレー背景を描画
+  canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
