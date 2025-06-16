@@ -70,7 +70,7 @@ int oilPressureSampleIndex      = 0;
 int waterTemperatureSampleIndex = 0;
 int oilTemperatureSampleIndex   = 0;
 
-// 水温・油温サンプリング間隔[ms]
+// 水温・油温サンプリング間隔[ms] (0.3 秒)
 constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
 // 表示を滑らかにするための平滑化係数
 constexpr float TEMP_DISPLAY_SMOOTHING_ALPHA = 0.1f;
@@ -79,7 +79,7 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
-// 起動直後のリアルタイム表示期間[ms]
+// 起動後 5 秒間は平均を取らずリアルタイム表示する期間[ms]
 constexpr uint32_t INITIAL_REALTIME_PERIOD_MS = 5000;
 unsigned long startupTimestamp = 0;
 
