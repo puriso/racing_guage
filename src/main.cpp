@@ -79,6 +79,10 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
+// 起動直後のリアルタイム表示期間[ms]
+constexpr uint32_t INITIAL_REALTIME_PERIOD_MS = 5000;
+unsigned long startupTimestamp = 0;
+
 // ── 表示キャッシュ ──
 struct DisplayCache {
   float  pressureAvg;
@@ -251,6 +255,9 @@ void setup()
 {
   Serial.begin(115200);
 
+  // 起動時刻を記録（最初の数秒は平滑化しないため）
+  startupTimestamp = millis();
+
   M5.begin();
   CoreS3.begin(M5.config());
   // 電源管理ICの初期化
@@ -405,18 +412,28 @@ void updateGauges()
   static float smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
   static float smoothOilTemp   = std::numeric_limits<float>::quiet_NaN();
 
+  unsigned long now = millis();
+
   float pressureAvg      = calculateAverage(oilPressureSamples);
   float targetWaterTemp  = calculateAverage(waterTemperatureSamples);
   float targetOilTemp    = calculateAverage(oilTemperatureSamples);
 
-  if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
-  if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
+  bool realtime = (now - startupTimestamp < INITIAL_REALTIME_PERIOD_MS);
 
-  // 平滑化: 新しい値に徐々に近づける
-  smoothWaterTemp +=
-      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetWaterTemp - smoothWaterTemp);
-  smoothOilTemp   +=
-      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetOilTemp   - smoothOilTemp);
+  if (realtime) {
+    // 起動直後は平均値が安定しないためそのまま表示
+    smoothWaterTemp = targetWaterTemp;
+    smoothOilTemp   = targetOilTemp;
+  } else {
+    if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
+    if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
+
+    // 平滑化: 新しい値に徐々に近づける
+    smoothWaterTemp +=
+        TEMP_DISPLAY_SMOOTHING_ALPHA * (targetWaterTemp - smoothWaterTemp);
+    smoothOilTemp   +=
+        TEMP_DISPLAY_SMOOTHING_ALPHA * (targetOilTemp   - smoothOilTemp);
+  }
 
   int oilTempDisplay = static_cast<int>(smoothOilTemp);
   if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
