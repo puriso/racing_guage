@@ -81,6 +81,7 @@ struct DisplayCache {
 } displayCache = {std::numeric_limits<float>::quiet_NaN(),
                   std::numeric_limits<float>::quiet_NaN(),
                   INT16_MIN, INT16_MIN};
+// 初回描画を強制するため NaN と最小値で初期化しておく
 
 // ── 電圧→物理量変換定数 ──
 constexpr float SUPPLY_VOLTAGE          = 5.0f;
@@ -153,11 +154,14 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   const int TOPBAR_Y = 0, TOPBAR_H = 50;
   const int GAUGE_H  = 170;
 
-  // 変化検知
-  bool oilChanged   = (oilTemp != displayCache.oilTemp) ||
-                      (maxOilTemp != displayCache.maxOilTemp);
-  bool pressureChanged = fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
-  bool waterChanged    = fabs(waterTempAvg - displayCache.waterTempAvg) > 0.01f;
+  // 変化検知。初回は必ず描画するため NaN/最小値を使用
+  bool oilChanged = (displayCache.oilTemp == INT16_MIN) ||
+                    (oilTemp != displayCache.oilTemp) ||
+                    (maxOilTemp != displayCache.maxOilTemp);
+  bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
+                         fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
+  bool waterChanged    = std::isnan(displayCache.waterTempAvg) ||
+                         fabs(waterTempAvg - displayCache.waterTempAvg) > 0.01f;
 
   mainCanvas.setTextColor(COLOR_WHITE);
 
