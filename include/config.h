@@ -14,12 +14,20 @@ constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 // ── 色設定 (16 bit) ──
-constexpr uint16_t COLOR_WHITE  = M5.Lcd.color565(255, 255, 255);
-constexpr uint16_t COLOR_BLACK  = M5.Lcd.color565(0,   0,   0);
-constexpr uint16_t COLOR_ORANGE = M5.Lcd.color565(255, 165, 0);
-constexpr uint16_t COLOR_YELLOW = M5.Lcd.color565(255, 255, 0);
-constexpr uint16_t COLOR_RED    = M5.Lcd.color565(255,   0, 0);
-constexpr uint16_t COLOR_GRAY   = M5.Lcd.color565(169, 169, 169);
+// RGB888 から 565 形式へ変換する constexpr 関数
+constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
+{
+  return (static_cast<uint16_t>(r & 0xF8) << 8)
+       | (static_cast<uint16_t>(g & 0xFC) << 3)
+       | (static_cast<uint16_t>(b) >> 3);
+}
+
+constexpr uint16_t COLOR_WHITE  = rgb565(255, 255, 255);
+constexpr uint16_t COLOR_BLACK  = rgb565(0,   0,   0);
+constexpr uint16_t COLOR_ORANGE = rgb565(255, 165, 0);
+constexpr uint16_t COLOR_YELLOW = rgb565(255, 255, 0);
+constexpr uint16_t COLOR_RED    = rgb565(255,   0, 0);
+constexpr uint16_t COLOR_GRAY   = rgb565(169, 169, 169);
 
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
