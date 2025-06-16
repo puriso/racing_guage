@@ -72,6 +72,8 @@ int oilTemperatureSampleIndex   = 0;
 
 // 水温・油温サンプリング間隔[ms]
 constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
+// 表示を滑らかにするための平滑化係数
+constexpr float TEMP_DISPLAY_SMOOTHING_ALPHA = 0.1f;
 
 float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
@@ -400,16 +402,30 @@ void acquireSensorData()
 // ────────────────────── メーター描画 ──────────────────────
 void updateGauges()
 {
-  float pressureAvg  = calculateAverage(oilPressureSamples);
-  float waterTempAvg = calculateAverage(waterTemperatureSamples);
-  float oilTempAvg   = calculateAverage(oilTemperatureSamples);
+  static float smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
+  static float smoothOilTemp   = std::numeric_limits<float>::quiet_NaN();
 
-  int oilTempDisplay = static_cast<int>(oilTempAvg);
+  float pressureAvg      = calculateAverage(oilPressureSamples);
+  float targetWaterTemp  = calculateAverage(waterTemperatureSamples);
+  float targetOilTemp    = calculateAverage(oilTemperatureSamples);
+
+  if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
+  if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
+
+  // 平滑化: 新しい値に徐々に近づける
+  smoothWaterTemp +=
+      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetWaterTemp - smoothWaterTemp);
+  smoothOilTemp   +=
+      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetOilTemp   - smoothOilTemp);
+
+  int oilTempDisplay = static_cast<int>(smoothOilTemp);
   if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, oilTempDisplay);
+  // 最大値は実際の平均値で判断
+  recordedMaxOilTempTop =
+      std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
 
-  renderDisplayAndLog(pressureAvg, waterTempAvg,
+  renderDisplayAndLog(pressureAvg, smoothWaterTemp,
                       oilTempDisplay, recordedMaxOilTempTop);
 }
 
