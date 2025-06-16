@@ -2,6 +2,8 @@
 #define DRAW_FILL_ARC_METER_H
 
 #include <M5GFX.h>  // 必要なライブラリをインクルード
+#include <algorithm> // std::max に必要
+#include <cmath>      // 三角関数に必要
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
