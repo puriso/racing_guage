@@ -59,7 +59,7 @@ struct DisplayCache {
 constexpr float SUPPLY_VOLTAGE          = 5.0f;
 constexpr float THERMISTOR_R25          = 10000.0f;
 constexpr float THERMISTOR_B_CONSTANT   = 3380.0f;
-constexpr float ABSOLUTE_TEMPERATURE_25 = 298.15f;
+constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;       // 273.16 + 25
 constexpr float SERIES_REFERENCE_RES    = 10000.0f;
 
 // ── LTR-553 初期化パラメータ ──
@@ -98,7 +98,7 @@ inline float convertVoltageToTemp(float voltage)
   float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
   float kelvin     = THERMISTOR_B_CONSTANT /
                      (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
-  return std::isnan(kelvin) ? 200.0f : kelvin - 273.15f;
+  return std::isnan(kelvin) ? 200.0f : kelvin - 273.16f;   // Kelvin→℃ 変換
 }
 
 template <size_t N>
