@@ -57,8 +57,8 @@ Adafruit_ADS1015 adsConverter;
 
 // ── センサリング用バッファ ──
 constexpr int PRESSURE_SAMPLE_SIZE     = 3;
-constexpr int WATER_TEMP_SAMPLE_SIZE   = 10;
-constexpr int OIL_TEMP_SAMPLE_SIZE     = 10;
+constexpr int WATER_TEMP_SAMPLE_SIZE   = 30;
+constexpr int OIL_TEMP_SAMPLE_SIZE     = 30;
 
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE]          = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE]   = {};
@@ -210,7 +210,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
   constexpr int X = 20, Y = 15, W = 210, H = 20;
   constexpr float RANGE = MAX_TEMP - MIN_TEMP;
 
-  canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
+  // canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
