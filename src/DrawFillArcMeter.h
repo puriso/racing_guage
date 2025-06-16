@@ -72,8 +72,31 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = RED;     // 最大値の印の色
 
+  // 以前の最大値を保持し、三角印を消す際に使用
+  float prevMaxValue = maxRecordedValue;
   // 最大値を更新
   maxRecordedValue = std::max(value, maxRecordedValue);
+
+  // ───── 前回の最大値三角を背景色で塗りつぶし ─────
+  if (prevMaxValue > minValue && prevMaxValue <= maxValue)
+  {
+    float prevAngle = 270 - ((270.0 / (maxValue - minValue)) * (prevMaxValue - minValue));
+    float pX = CENTER_X_CORRECTED + cos(radians(prevAngle)) * (RADIUS + 5);
+    float pY = CENTER_Y_CORRECTED - sin(radians(prevAngle)) * (RADIUS + 5);
+    float b1X = CENTER_X_CORRECTED + cos(radians(prevAngle + 3)) * (RADIUS + 8);
+    float b1Y = CENTER_Y_CORRECTED - sin(radians(prevAngle + 3)) * (RADIUS + 8);
+    float b2X = CENTER_X_CORRECTED + cos(radians(prevAngle - 3)) * (RADIUS + 8);
+    float b2Y = CENTER_Y_CORRECTED - sin(radians(prevAngle - 3)) * (RADIUS + 8);
+    canvas.fillTriangle(pX, pY, b1X, b1Y, b2X, b2Y, BACKGROUND_COLOR);
+  }
+
+  // 値表示エリアのクリア
+  canvas.setFont(&FreeSansBold24pt7b);
+  int valueAreaX = CENTER_X_CORRECTED + RADIUS + 1;
+  int valueAreaY = CENTER_Y_CORRECTED + RADIUS - 20 - canvas.fontHeight();
+  int valueAreaW = std::min(70, canvas.width() - valueAreaX);  // 幅は画面端でクリップ
+  int valueAreaH = canvas.fontHeight() + 2;
+  canvas.fillRect(valueAreaX, valueAreaY, valueAreaW, valueAreaH, BACKGROUND_COLOR);
 
   // メーター全体を塗りつぶし（非アクティブ部分）
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
