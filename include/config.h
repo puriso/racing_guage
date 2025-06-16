@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <Arduino.h>
+#include <M5CoreS3.h>
 
 // ────────────────────── 設定 ──────────────────────
 // デバッグモードを有効にするかどうか

@@ -3,9 +3,8 @@
 #include "config.h"
 
 // ── 標準／ライブラリ ──
-#include <Arduino.h>
-#include <Adafruit_ADS1X15.h>
 #include <M5CoreS3.h>
+#include <Adafruit_ADS1X15.h>
 #include <M5GFX.h>
 #include <Wire.h>
 #include <algorithm>
