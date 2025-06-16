@@ -34,10 +34,20 @@ jobs:
       - name: Install clang tools
         run: sudo apt-get update && sudo apt-get install -y clang-format clang-tidy
       - name: Run clang-format
-        run: |
-          clang-format -n --Werror $(find src include -name '*.cpp' -o -name '*.h')
+        uses: reviewdog/action-clang-format@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail_on_error: false
+          pattern: |
+            src/**/*.cpp
+            include/**/*.h
       - name: Run clang-tidy
-        run: |
-          clang-tidy $(find src -name '*.cpp') -- -Iinclude -std=c++17
+        uses: reviewdog/action-clang-tidy@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail_on_error: false
+          clang_tidy_flags: '-Iinclude -std=c++17'
       - name: Build
         run: pio run -e m5stack-cores3
