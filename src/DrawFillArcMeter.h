@@ -4,6 +4,7 @@
 #include <M5GFX.h>  // 必要なライブラリをインクルード
 #include <algorithm>
 #include <cmath>
+#include "FastTrig.h"  // 事前計算した三角関数を利用
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
@@ -56,15 +57,21 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     float maxValueAngle = 270 - ((270.0 / (maxValue - minValue)) * (maxRecordedValue - minValue));  // 最大値を角度に変換
 
     // 三角形の先端（外側）
-    float maxMarkX = CENTER_X_CORRECTED + (cos(radians(maxValueAngle)) * (RADIUS + 5));
-    float maxMarkY = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle)) * (RADIUS + 5));
+    float cosVal = fastCos(maxValueAngle);
+    float sinVal = fastSin(maxValueAngle);
+    float maxMarkX = CENTER_X_CORRECTED + (cosVal * (RADIUS + 5));
+    float maxMarkY = CENTER_Y_CORRECTED - (sinVal * (RADIUS + 5));
 
     // 小さな三角形の基点（外側に配置）
-    float baseMarkX1 = CENTER_X_CORRECTED + (cos(radians(maxValueAngle + 3)) * (RADIUS + 8));
-    float baseMarkY1 = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle + 3)) * (RADIUS + 8));
+    float cosValP3 = fastCos(maxValueAngle + 3);
+    float sinValP3 = fastSin(maxValueAngle + 3);
+    float baseMarkX1 = CENTER_X_CORRECTED + (cosValP3 * (RADIUS + 8));
+    float baseMarkY1 = CENTER_Y_CORRECTED - (sinValP3 * (RADIUS + 8));
 
-    float baseMarkX2 = CENTER_X_CORRECTED + (cos(radians(maxValueAngle - 3)) * (RADIUS + 8));
-    float baseMarkY2 = CENTER_Y_CORRECTED - (sin(radians(maxValueAngle - 3)) * (RADIUS + 8));
+    float cosValM3 = fastCos(maxValueAngle - 3);
+    float sinValM3 = fastSin(maxValueAngle - 3);
+    float baseMarkX2 = CENTER_X_CORRECTED + (cosValM3 * (RADIUS + 8));
+    float baseMarkY2 = CENTER_Y_CORRECTED - (sinValM3 * (RADIUS + 8));
 
     canvas.fillTriangle(maxMarkX, maxMarkY,      // 三角形の先端（外側の位置）
                         baseMarkX1, baseMarkY1,  // 三角形の左基点
@@ -79,20 +86,21 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   {
     float scaledValue = minValue + (tickStep * i);
     float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
-    float rad = radians(angle);
+    float cosVal = fastCos(angle);
+    float sinVal = fastSin(angle);
 
-    int lineX1 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
-    int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
-    int lineX2 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
-    int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
+    int lineX1 = CENTER_X_CORRECTED + (cosVal * (RADIUS - ARC_WIDTH - 10));
+    int lineY1 = CENTER_Y_CORRECTED - (sinVal * (RADIUS - ARC_WIDTH - 10));
+    int lineX2 = CENTER_X_CORRECTED + (cosVal * (RADIUS - ARC_WIDTH - 5));
+    int lineY2 = CENTER_Y_CORRECTED - (sinVal * (RADIUS - ARC_WIDTH - 5));
 
     canvas.drawLine(lineX1, lineY1, lineX2, lineY2, WHITE);
 
     // 整数値の目盛ラベルを描画
     if (fmod(scaledValue, 1.0) == 0)
     {
-      int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
-      int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
+      int labelX = CENTER_X_CORRECTED + (cosVal * (RADIUS - ARC_WIDTH - 15));
+      int labelY = CENTER_Y_CORRECTED - (sinVal * (RADIUS - ARC_WIDTH - 15));
 
       char labelText[6];
       snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
