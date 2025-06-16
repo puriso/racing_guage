@@ -20,12 +20,13 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 
-// ── 色設定 (18 bit) ──
-constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
-constexpr uint32_t COLOR_BLACK  = M5.Lcd.color888(0,   0,   0);
-constexpr uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0);
-constexpr uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);
-constexpr uint32_t COLOR_RED    = M5.Lcd.color888(255,   0, 0);
+// ── 色設定 (16 bit) ──
+constexpr uint16_t COLOR_WHITE  = M5.Lcd.color565(255, 255, 255);
+constexpr uint16_t COLOR_BLACK  = M5.Lcd.color565(0,   0,   0);
+constexpr uint16_t COLOR_ORANGE = M5.Lcd.color565(255, 165, 0);
+constexpr uint16_t COLOR_YELLOW = M5.Lcd.color565(255, 255, 0);
+constexpr uint16_t COLOR_RED    = M5.Lcd.color565(255,   0, 0);
+constexpr uint16_t COLOR_GRAY   = M5.Lcd.color565(169, 169, 169);
 
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
@@ -137,8 +138,6 @@ int16_t readAdcWithSettling(uint8_t ch)
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp)
 {
-  mainCanvas.deleteSprite();
-  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
   mainCanvas.fillSprite(COLOR_BLACK);
   mainCanvas.setTextColor(COLOR_WHITE);
 
@@ -194,7 +193,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
     canvas.setCursor(tx - 10, Y - 14);
     canvas.printf("%d", m);
     if (m == ALERT_TEMP)
-      canvas.drawLine(tx, Y, tx, Y + H - 2, M5.Lcd.color888(169, 169, 169));
+      canvas.drawLine(tx, Y, tx, Y + H - 2, COLOR_GRAY);
   }
 
   canvas.setCursor(X, Y + H + 4);
@@ -213,14 +212,20 @@ void setup()
   CoreS3.begin(M5.config());
   // 電源管理ICの初期化
   M5.Power.begin();
+  // LTR553 初期化（サンプルでは begin() 呼び出しが推奨されている）
+  CoreS3.Ltr553.begin(&ltr553InitParams);
+  // 電源管理ICの初期化
+  M5.Power.begin();
 
   display.init();
   display.setRotation(3);
-  display.setColorDepth(24);
+  // 16bitにすると描画バッファ転送量が減りFPS向上
+  display.setColorDepth(16);
   display.setBrightness(BACKLIGHT_DAY);
 
-  mainCanvas.setColorDepth(24);
+  mainCanvas.setColorDepth(16);
   mainCanvas.setTextSize(1);
+  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
