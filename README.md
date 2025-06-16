@@ -22,7 +22,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 - 油圧・燃圧・ブースト (0–10 bar) 半円アナログメーター  
   - 本リポジトリでは **油圧**・**油温** を実装済み
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
-- 各種設定は `include/config.h` に加え、一部は `src/main.cpp` の定数で変更可能
+- 各種設定は `include/config.h` の定数で変更可能
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考                     |
@@ -51,8 +51,8 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 ### Features
 - Semi-circular analog gauge (0–10 bar, pressure)
   - In this repository, **oil pressure** and **oil temperature** are implemented.
-- Digital + bar graph temperature display  
-- Most settings are in `include/config.h`, but some constants live in `src/main.cpp`
+- Digital + bar graph temperature display
+- Most settings are in `include/config.h`
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |
