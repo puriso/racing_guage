@@ -16,16 +16,18 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <numeric>
 
 #include "DrawFillArcMeter.h"               // 半円メーター描画
 #include "conversion.h"
 
-// ── 色設定 (18 bit) ──
-constexpr uint32_t COLOR_WHITE  = M5.Lcd.color888(255, 255, 255);
-constexpr uint32_t COLOR_BLACK  = M5.Lcd.color888(0,   0,   0);
-constexpr uint32_t COLOR_ORANGE = M5.Lcd.color888(255, 165, 0);
-constexpr uint32_t COLOR_YELLOW = M5.Lcd.color888(255, 255, 0);
-constexpr uint32_t COLOR_RED    = M5.Lcd.color888(255,   0, 0);
+// ── 色設定 (16 bit) ──
+constexpr uint16_t COLOR_WHITE  = M5.Lcd.color565(255, 255, 255);
+constexpr uint16_t COLOR_BLACK  = M5.Lcd.color565(0,   0,   0);
+constexpr uint16_t COLOR_ORANGE = M5.Lcd.color565(255, 165, 0);
+constexpr uint16_t COLOR_YELLOW = M5.Lcd.color565(255, 255, 0);
+constexpr uint16_t COLOR_RED    = M5.Lcd.color565(255,   0, 0);
+constexpr uint16_t COLOR_GRAY   = M5.Lcd.color565(169, 169, 169);
 
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
@@ -93,8 +95,7 @@ void     updateBacklightLevel();
 template <size_t N>
 inline float calculateAverage(const float (&values)[N])
 {
-  float sum = 0.0f;
-  for (float v : values) sum += v;
+  float sum = std::accumulate(values, values + N, 0.0f);
   return sum / static_cast<float>(N);
 }
 
@@ -112,8 +113,6 @@ int16_t readAdcWithSettling(uint8_t ch)
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp)
 {
-  mainCanvas.deleteSprite();
-  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
   mainCanvas.fillSprite(COLOR_BLACK);
   mainCanvas.setTextColor(COLOR_WHITE);
 
@@ -169,7 +168,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
     canvas.setCursor(tx - 10, Y - 14);
     canvas.printf("%d", m);
     if (m == ALERT_TEMP)
-      canvas.drawLine(tx, Y, tx, Y + H - 2, M5.Lcd.color888(169, 169, 169));
+      canvas.drawLine(tx, Y, tx, Y + H - 2, COLOR_GRAY);
   }
 
   canvas.setCursor(X, Y + H + 4);
@@ -186,14 +185,22 @@ void setup()
 
   M5.begin();
   CoreS3.begin(M5.config());
+  // 電源管理ICの初期化
+  M5.Power.begin();
+  // LTR553 初期化（サンプルでは begin() 呼び出しが推奨されている）
+  CoreS3.Ltr553.begin(&ltr553InitParams);
+  // 電源管理ICの初期化
+  M5.Power.begin();
 
   display.init();
   display.setRotation(3);
-  display.setColorDepth(24);
+  // 16bitにすると描画バッファ転送量が減りFPS向上
+  display.setColorDepth(16);
   display.setBrightness(BACKLIGHT_DAY);
 
-  mainCanvas.setColorDepth(24);
+  mainCanvas.setColorDepth(16);
   mainCanvas.setTextSize(1);
+  mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
@@ -212,6 +219,8 @@ void setup()
   adsConverter.setDataRate(RATE_ADS1015_1600SPS);
 
   if (SENSOR_AMBIENT_LIGHT_PRESENT) {
+    // LTR553 初期化（サンプルでは begin() 呼び出しが推奨されている）
+    CoreS3.Ltr553.begin(&ltr553InitParams);
     CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
     ltr553InitParams.als_gain             = LTR5XX_ALS_GAIN_48X;
     ltr553InitParams.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
@@ -277,8 +286,7 @@ void acquireSensorData()
 {
   // 油圧
   if (SENSOR_OIL_PRESSURE_PRESENT) {
-    readAdcWithSettling(1);
-    int16_t raw = adsConverter.readADC_SingleEnded(1);     // CH1: 油圧
+    int16_t raw = readAdcWithSettling(1);                  // CH1: 油圧
     oilPressureSamples[oilPressureSampleIndex] =
         convertVoltageToOilPressure(convertAdcToVoltage(raw));
   } else {
@@ -288,8 +296,7 @@ void acquireSensorData()
 
   // 水温
   if (SENSOR_WATER_TEMP_PRESENT) {
-    readAdcWithSettling(0);
-    int16_t raw = adsConverter.readADC_SingleEnded(0);     // CH0: 水温
+    int16_t raw = readAdcWithSettling(0);                  // CH0: 水温
     waterTemperatureSamples[waterTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
@@ -299,8 +306,7 @@ void acquireSensorData()
 
   // 油温
   if (SENSOR_OIL_TEMP_PRESENT) {
-    readAdcWithSettling(2);
-    int16_t raw = adsConverter.readADC_SingleEnded(2);     // CH2: 油温
+    int16_t raw = readAdcWithSettling(2);                  // CH2: 油温
     oilTemperatureSamples[oilTemperatureSampleIndex] =
         convertVoltageToTemp(convertAdcToVoltage(raw));
   } else {
