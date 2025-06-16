@@ -348,11 +348,6 @@ void acquireSensorData()
   }
   oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
 
-  // 最大値更新
-  recordedMaxOilPressure =
-      std::max(recordedMaxOilPressure, calculateAverage(oilPressureSamples));
-  recordedMaxWaterTemp   =
-      std::max(recordedMaxWaterTemp,   calculateAverage(waterTemperatureSamples));
 }
 
 // ────────────────────── メーター描画 ──────────────────────
@@ -362,10 +357,13 @@ void updateGauges()
   float waterTempAvg = calculateAverage(waterTemperatureSamples);
   float oilTempAvg   = calculateAverage(oilTemperatureSamples);
 
-  int oilTempDisplay = static_cast<int>(oilTempAvg);
-  if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
+    int oilTempDisplay = static_cast<int>(oilTempAvg);
+    if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, oilTempDisplay);
+    // 表示値で最大値を更新
+    recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
+    recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp,   waterTempAvg);
+    recordedMaxOilTempTop  = std::max(recordedMaxOilTempTop, oilTempDisplay);
 
   renderDisplayAndLog(pressureAvg, waterTempAvg,
                       oilTempDisplay, recordedMaxOilTempTop);
