@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <Arduino.h>
+
 // ────────────────────── 設定 ──────────────────────
 // デバッグモードを有効にするかどうか
 constexpr bool DEBUG_MODE_ENABLED = false;
