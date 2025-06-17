@@ -52,6 +52,10 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
+// メーター描画状態
+GaugeRenderState pressureGaugeState;
+GaugeRenderState waterGaugeState;
+
 // ── 表示キャッシュ ──
 struct DisplayCache {
   float  pressureAvg;
@@ -157,15 +161,19 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
                      RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, true,   0,   60);
+                     0.5f, true,   0,   60, pressureGaugeState);
     displayCache.pressureAvg = pressureAvg;
   }
 
-  if (waterChanged) {
+  int waterDigits = (static_cast<int>(waterTempAvg) >= 100) ? 3 : 2;
+  bool waterRedraw = (waterGaugeState.previousDigits == 3 && waterDigits == 2);
+
+  if (waterChanged || waterRedraw) {
     mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    if (waterRedraw) waterGaugeState.firstDraw = true;
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60);
+                     5.0f, false, 160,  60, waterGaugeState);
     displayCache.waterTempAvg = waterTempAvg;
   }
 
