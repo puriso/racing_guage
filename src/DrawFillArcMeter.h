@@ -113,7 +113,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     strcpy(maxStr, "000");
   int clearW = canvas.textWidth(maxStr) + 4;
   int clearH = canvas.fontHeight();
-  canvas.fillRect(valueX - clearW, valueY - clearH, clearW, clearH, BACKGROUND_COLOR);
+  // 下側まで確実に塗りつぶすため、高さを2倍にする
+  canvas.fillRect(valueX - clearW, valueY - clearH, clearW, clearH * 2, BACKGROUND_COLOR);
 
   canvas.setTextColor(TEXT_COLOR);
   canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
