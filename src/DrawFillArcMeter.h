@@ -30,13 +30,14 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
 
   // レッドゾーンの背景を描画
-  // グレー背景から 1px 離すため外側半径を 1px 内側にずらす
-  float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+  // 背景グレーと 1px の隙間を空け常に赤で表示する
+  float redZoneStartAngle =
+      -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                 RADIUS - ARC_WIDTH - 9,  // 内側半径はそのまま
-                 RADIUS - ARC_WIDTH - 4,  // 外側半径を 1px 内側へ
+                 RADIUS - ARC_WIDTH - 6,  // 5px 幅を保つため内側半径も調整
+                 RADIUS - ARC_WIDTH - 1,  // グレー背景から 1px 離す
                  redZoneStartAngle, 0,
-                 RED);                   // 常に赤で表示
+                 RED);               // レッドゾーンは常に赤表示
 
   // 現在の値に対応する部分を塗りつぶし
   if (value >= minValue && value <= maxValue * 1.1)
