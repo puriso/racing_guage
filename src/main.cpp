@@ -155,7 +155,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 
   if (pressureChanged) {
     mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
-    drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, 10.0f,  8.0f,
+    drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
                      RED, "BAR", "OIL.P", recordedMaxOilPressure,
                      0.5f, true,   0,   60);
     displayCache.pressureAvg = pressureAvg;
@@ -379,6 +379,8 @@ void updateGauges()
   unsigned long now = millis();
 
   float pressureAvg      = calculateAverage(oilPressureSamples);
+  // 表示上の上限を超えないようにクランプ
+  pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
   float targetWaterTemp  = calculateAverage(waterTemperatureSamples);
   float targetOilTemp    = calculateAverage(oilTemperatureSamples);
 

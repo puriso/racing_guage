@@ -3,7 +3,7 @@
 
 A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays:
 
-* **Oil / Fuel / Boost Pressure** via **Defi PDF00903S** (0 – 10 bar, 0.5 – 4.5 V)  
+* **Oil / Fuel / Boost Pressure** via **Defi PDF00903S** (0 – 9.9 bar, 0.5 – 4.5 V)
 * **Oil / Water Temperature** via **Defi PDF00703S** (–40 – 150 °C, 0.5 – 4.5 V)  
 
 
@@ -19,7 +19,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 サーキットでの簡易モニタリング用途に最適化しています。
 
 ### 主な機能
-- 油圧・燃圧・ブースト (0–10 bar) 半円アナログメーター  
+- 油圧・燃圧・ブースト (0–9.9 bar) 半円アナログメーター
   - 本リポジトリでは **油圧**・**油温** を実装済み
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
 - 各種設定は `src/main.cpp` 冒頭の定数で変更可能
@@ -43,13 +43,13 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ### Overview
 This project turns an **M5Stack CoreS3** and **ADS1015 ADC** into a simple yet powerful multi-gauge that reads:
 
-- **Oil / Fuel / Boost Pressure** using **Defi PDF00903S** (0.5–4.5 V, 0–10 bar)  
+- **Oil / Fuel / Boost Pressure** using **Defi PDF00903S** (0.5–4.5 V, 0–9.9 bar)
 - **Oil / Water Temperature** using **Defi PDF00703S** (0.5–4.5 V, –40 to 150°C)  
 
 Perfect for vintage cars lacking modern instrumentation or for lightweight track-day data monitoring.
 
 ### Features
-- Semi-circular analog gauge (0–10 bar, pressure)
+- Semi-circular analog gauge (0–9.9 bar, pressure)
   - In this repository, **oil pressure** and **oil temperature** are implemented.
 - Digital + bar graph temperature display  
 - Settings are defined at the top of `src/main.cpp`
