@@ -2,6 +2,7 @@
 #define DRAW_FILL_ARC_METER_H
 
 #include <M5GFX.h>  // 必要なライブラリをインクルード
+#include <Arduino.h>
 #include <algorithm>
 #include <cmath>
 
@@ -31,21 +32,24 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // レッドゾーンの背景を描画
   float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
-  if (value >= threshold)
-  {
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH - 5, RADIUS - ARC_WIDTH, redZoneStartAngle, 0,
-                   YELLOW);
-  }
-  else
-  {
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH - 5, RADIUS - ARC_WIDTH, redZoneStartAngle, 0,
-                   RED);
-  }
+  // 常に赤色でレッドゾーンを描画
+  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH - 5, RADIUS - ARC_WIDTH, redZoneStartAngle, 0, RED);
 
   // 現在の値に対応する部分を塗りつぶし
   if (value >= minValue && value <= maxValue * 1.1)
   {
-    uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
+    static bool blinkState = true;
+    static unsigned long lastBlink = 0;
+    unsigned long now = millis();
+    if (value >= threshold) {
+        if (now - lastBlink >= 300) {
+            blinkState = !blinkState;
+            lastBlink = now;
+        }
+    } else {
+        blinkState = true;
+    }
+    uint16_t barColor = (value >= threshold && !blinkState) ? BACKGROUND_COLOR : ACTIVE_COLOR;
     float valueAngle = -270 + ((value - minValue) / (maxValue - minValue) * 270.0);
     canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
   }

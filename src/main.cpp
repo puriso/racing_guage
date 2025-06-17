@@ -187,7 +187,18 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
-    uint32_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
+    static bool blinkState = true;
+    static unsigned long lastBlink = 0;
+    unsigned long now = millis();
+    if (oilTemp >= ALERT_TEMP) {
+      if (now - lastBlink >= 300) {
+        blinkState = !blinkState;
+        lastBlink  = now;
+      }
+    } else {
+      blinkState = true;
+    }
+    uint32_t barColor = (oilTemp >= ALERT_TEMP && !blinkState) ? COLOR_BLACK : COLOR_WHITE;
     canvas.fillRect(X, Y, barWidth, H, barColor);
   }
 
