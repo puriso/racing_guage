@@ -52,6 +52,22 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
+// ── 詳細表示用の現在値・最大値 ──
+float currentOilPressure = 0.0f;      // 現在の油圧
+float currentWaterTemp   = 0.0f;      // 現在の水温
+int   currentOilTemp     = 0;         // 現在の油温
+
+float maxOilPressure = 0.0f;          // これまでの油圧最大値（表示上限なし）
+float maxWaterTemp   = 0.0f;          // これまでの水温最大値（表示上限なし）
+int   maxOilTemp     = 0;             // これまでの油温最大値（表示上限なし）
+
+// ── デバッグモード ──
+bool debugModeEnabled = DEBUG_MODE_DEFAULT;
+
+// ── 画面モード ──
+enum class ScreenMode { Main, Detail };
+ScreenMode screenMode = ScreenMode::Main;
+
 // ── 表示キャッシュ ──
 struct DisplayCache {
   float  pressureAvg;
@@ -84,6 +100,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp);
 void updateGauges();
 void acquireSensorData();
+void renderDetailScreen();
 
 uint32_t measureLuxWithoutBacklight();
 void     updateBacklightLevel();
@@ -170,7 +187,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   // FPS (左下)
-  if (DEBUG_MODE_ENABLED) {
+  if (debugModeEnabled) {
     mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
     mainCanvas.setTextSize(1);
     mainCanvas.setCursor(5, LCD_HEIGHT - 12);
@@ -294,7 +311,7 @@ void updateBacklightLevel()
   }
 
   uint32_t lux = measureLuxWithoutBacklight();
-  if (DEBUG_MODE_ENABLED) Serial.printf("[ALS] lux=%lu\n", lux);
+  if (debugModeEnabled) Serial.printf("[ALS] lux=%lu\n", lux);
 
   luxSampleBuffer[luxSampleIndex] = lux;
   luxSampleIndex = (luxSampleIndex + 1) % MEDIAN_BUFFER_SIZE;
@@ -315,7 +332,7 @@ void updateBacklightLevel()
         (newMode == BrightnessMode::Dusk) ? BACKLIGHT_DUSK : BACKLIGHT_NIGHT;
     display.setBrightness(targetB);
 
-    if (DEBUG_MODE_ENABLED) {
+    if (debugModeEnabled) {
       const char* s =
           (newMode == BrightnessMode::Day)  ? "DAY"  :
           (newMode == BrightnessMode::Dusk) ? "DUSK" : "NIGHT";
@@ -378,11 +395,17 @@ void updateGauges()
 
   unsigned long now = millis();
 
-  float pressureAvg      = calculateAverage(oilPressureSamples);
-  // 表示上の上限を超えないようにクランプ
-  pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
+  float rawPressureAvg   = calculateAverage(oilPressureSamples);
   float targetWaterTemp  = calculateAverage(waterTemperatureSamples);
   float targetOilTemp    = calculateAverage(oilTemperatureSamples);
+
+  // 最大値（表示上限なし）を記録
+  maxOilPressure = std::max(maxOilPressure, rawPressureAvg);
+  maxWaterTemp   = std::max(maxWaterTemp, targetWaterTemp);
+  maxOilTemp     = std::max(maxOilTemp, static_cast<int>(targetOilTemp));
+
+  // 表示上の上限を超えないようにクランプ
+  float pressureAvg = std::min(rawPressureAvg, MAX_OIL_PRESSURE_DISPLAY);
 
   if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
   if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
@@ -396,7 +419,12 @@ void updateGauges()
   int oilTempDisplay = static_cast<int>(smoothOilTemp);
   if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  // 表示している値に合わせて最大値を更新
+  // 現在値を保持
+  currentOilPressure = pressureAvg;
+  currentWaterTemp   = smoothWaterTemp;
+  currentOilTemp     = oilTempDisplay;
+
+  // 表示している値に合わせて最大値を更新（表示用）
   recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
   recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
   recordedMaxOilTempTop =
@@ -406,11 +434,58 @@ void updateGauges()
                       oilTempDisplay, recordedMaxOilTempTop);
 }
 
+// ────────────────────── 詳細画面描画 ──────────────────────
+void renderDetailScreen()
+{
+  mainCanvas.fillScreen(COLOR_BLACK);
+  mainCanvas.setTextColor(COLOR_WHITE);
+  mainCanvas.setTextSize(1);
+  mainCanvas.setFont(&fonts::Font0);
+
+  // 現在の値
+  mainCanvas.setCursor(10, 10);
+  mainCanvas.println("現在の値");
+  mainCanvas.setCursor(20, 26);
+  mainCanvas.printf("油圧: %.2f bar", currentOilPressure);
+  mainCanvas.setCursor(20, 42);
+  mainCanvas.printf("水温: %.2f C", currentWaterTemp);
+  mainCanvas.setCursor(20, 58);
+  mainCanvas.printf("油温: %d C", currentOilTemp);
+
+  // 最大値
+  mainCanvas.setCursor(10, 90);
+  mainCanvas.println("最大値");
+  mainCanvas.setCursor(20, 106);
+  mainCanvas.printf("油圧: %.2f bar", maxOilPressure);
+  mainCanvas.setCursor(20, 122);
+  mainCanvas.printf("水温: %.2f C", maxWaterTemp);
+  mainCanvas.setCursor(20, 138);
+  mainCanvas.printf("油温: %d C", maxOilTemp);
+
+  // デバッグモード切り替えボタン
+  mainCanvas.drawRect(40, 170, 100, 30, COLOR_WHITE);
+  mainCanvas.setCursor(45, 180);
+  mainCanvas.printf("DEBUG:%s", debugModeEnabled ? "ON" : "OFF");
+
+  // 戻るボタン
+  mainCanvas.drawRect(180, 170, 100, 30, COLOR_WHITE);
+  mainCanvas.setCursor(200, 180);
+  mainCanvas.print("RETURN");
+
+  mainCanvas.pushSprite(0, 0);
+}
+
 // ────────────────────── loop() ──────────────────────
 void loop()
 {
   static unsigned long previousAlsSampleTime = 0;
   unsigned long now = millis();
+
+  // 入力更新
+  CoreS3.update();
+
+  // タッチ情報取得
+  auto touch = CoreS3.Touch.getDetail();
 
   if (now - previousAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
     updateBacklightLevel();
@@ -418,12 +493,29 @@ void loop()
   }
 
   acquireSensorData();
-  updateGauges();
+  if (screenMode == ScreenMode::Main) {
+    if (touch.state == m5::touch_state_t::touch_begin) {
+      screenMode = ScreenMode::Detail;
+    }
+    updateGauges();
+  } else {
+    if (touch.state == m5::touch_state_t::touch_begin) {
+      if (touch.y > 170 && touch.y < 210) {
+        if (touch.x < 160) {
+          // デバッグモード切り替え
+          debugModeEnabled = !debugModeEnabled;
+        } else {
+          screenMode = ScreenMode::Main;
+        }
+      }
+    }
+    renderDetailScreen();
+  }
 
   frameCounterPerSecond++;
   if (now - previousFpsTimestamp >= 1000UL) {
     currentFramesPerSecond = frameCounterPerSecond;
-    if (DEBUG_MODE_ENABLED) Serial.printf("FPS:%d\n", currentFramesPerSecond);
+    if (debugModeEnabled) Serial.printf("FPS:%d\n", currentFramesPerSecond);
     frameCounterPerSecond = 0;
     previousFpsTimestamp  = now;
   }
