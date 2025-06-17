@@ -24,6 +24,14 @@ int      luxSampleIndex  = 0;
 M5GFX    display;
 M5Canvas mainCanvas(&display);
 
+// ── メーター表示エリアサイズ ──
+constexpr int GAUGE_AREA_WIDTH  = 160;
+constexpr int GAUGE_AREA_HEIGHT = 170;
+
+// ── メーター背景スプライト ──
+M5Canvas pressureGaugeBase(&mainCanvas);
+M5Canvas waterGaugeBase(&mainCanvas);
+
 // ── ADS1015 ──
 Adafruit_ADS1015 adsConverter;
 
@@ -132,7 +140,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 {
   // 描画領域計算
   const int TOPBAR_Y = 0, TOPBAR_H = 50;
-  const int GAUGE_H  = 170;
+  const int GAUGE_H  = GAUGE_AREA_HEIGHT;
 
   // 変化検知。初回は必ず描画するため NaN/最小値を使用
   bool oilChanged = (displayCache.oilTemp == INT16_MIN) ||
@@ -154,18 +162,20 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   if (pressureChanged) {
-    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    mainCanvas.fillRect(0, 60, GAUGE_AREA_WIDTH, GAUGE_AREA_HEIGHT, COLOR_BLACK);
+    pressureGaugeBase.pushSprite(0, 60);
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
                      RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, true,   0,   60);
+                     0.5f, true,   0,   60, false);
     displayCache.pressureAvg = pressureAvg;
   }
 
   if (waterChanged) {
-    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    mainCanvas.fillRect(160, 60, GAUGE_AREA_WIDTH, GAUGE_AREA_HEIGHT, COLOR_BLACK);
+    waterGaugeBase.pushSprite(160, 60);
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60);
+                     5.0f, false, 160,  60, false);
     displayCache.waterTempAvg = waterTempAvg;
   }
 
@@ -244,6 +254,19 @@ void setup()
   mainCanvas.setColorDepth(16);
   mainCanvas.setTextSize(1);
   mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
+
+  // ── メーター背景スプライト作成 ──
+  pressureGaugeBase.setColorDepth(16);
+  pressureGaugeBase.createSprite(GAUGE_AREA_WIDTH, GAUGE_AREA_HEIGHT);
+  pressureGaugeBase.fillSprite(COLOR_BLACK);
+  drawGaugeBase(pressureGaugeBase, 0.0f, MAX_OIL_PRESSURE_DISPLAY,
+                8.0f, 0.5f, 0, 0);
+
+  waterGaugeBase.setColorDepth(16);
+  waterGaugeBase.createSprite(GAUGE_AREA_WIDTH, GAUGE_AREA_HEIGHT);
+  waterGaugeBase.fillSprite(COLOR_BLACK);
+  drawGaugeBase(waterGaugeBase, 50.0f, 110.0f,
+                98.0f, 5.0f, 0, 0);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
