@@ -33,12 +33,10 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // 最大値を更新
   maxRecordedValue = std::max(value, maxRecordedValue);
 
-  // 値が減少した場合はメーター部をクリア
-  if (state.firstDraw || (!std::isnan(state.previousValue) && value < state.previousValue)) {
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                   RADIUS - ARC_WIDTH, RADIUS,
-                   -270, 0, INACTIVE_COLOR);
-  }
+  // 毎回バー部分のみ背景色でクリア
+  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                 RADIUS - ARC_WIDTH, RADIUS,
+                 -270, 0, INACTIVE_COLOR);
 
   // 初回のみレッドゾーンと目盛りを描画
   if (state.firstDraw) {

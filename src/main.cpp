@@ -158,7 +158,6 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   if (pressureChanged) {
-    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
                      RED, "BAR", "OIL.P", recordedMaxOilPressure,
                      0.5f, true,   0,   60, pressureGaugeState);
@@ -169,8 +168,10 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   bool waterRedraw = (waterGaugeState.previousDigits == 3 && waterDigits == 2);
 
   if (waterChanged || waterRedraw) {
-    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
-    if (waterRedraw) waterGaugeState.firstDraw = true;
+    if (waterRedraw) {
+      mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+      waterGaugeState.firstDraw = true;
+    }
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
                      5.0f, false, 160,  60, waterGaugeState);
