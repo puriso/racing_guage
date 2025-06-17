@@ -4,8 +4,8 @@
 #include <M5CoreS3.h>
 
 // ────────────────────── 設定 ──────────────────────
-// デバッグモードを有効にするかどうか
-constexpr bool DEBUG_MODE_ENABLED = false;
+// デバッグモードの初期値
+constexpr bool DEBUG_MODE_DEFAULT = false;
 
 // ── センサー接続可否（false にするとその項目は常に 0 表示） ──
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
