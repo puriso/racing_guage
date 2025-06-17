@@ -112,11 +112,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
 
   // 表示領域を一度クリア
+  // 数字表示部の塗りつぶし幅は基本2桁分とする
   char maxStr[6];
   if (useDecimal)
     strcpy(maxStr, "00.0");
   else
-    strcpy(maxStr, "000");
+    strcpy(maxStr, "00");  // 3桁時ははみ出すが許容
   int clearW = canvas.textWidth(maxStr) + 4;
   int clearH = canvas.fontHeight();
   // 下側まで確実に塗りつぶすため、高さを2倍にする
