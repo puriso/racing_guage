@@ -28,9 +28,11 @@ M5Canvas mainCanvas(&display);
 Adafruit_ADS1015 adsConverter;
 
 // ── センサリング用バッファ ──
-constexpr int PRESSURE_SAMPLE_SIZE     = 3;
-constexpr int WATER_TEMP_SAMPLE_SIZE   = 30;
-constexpr int OIL_TEMP_SAMPLE_SIZE     = 30;
+// 油圧のサンプリングサイズ
+constexpr int PRESSURE_SAMPLE_SIZE     = 5;
+// 水温・油温のサンプリングサイズ
+constexpr int WATER_TEMP_SAMPLE_SIZE   = 10;
+constexpr int OIL_TEMP_SAMPLE_SIZE     = 10;
 
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE]          = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE]   = {};
@@ -40,6 +42,12 @@ int oilPressureSampleIndex      = 0;
 int waterTemperatureSampleIndex = 0;
 int oilTemperatureSampleIndex   = 0;
 
+// 水温・油温サンプリング間隔[ms] (0.3 秒)
+constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
+// 表示を滑らかにするための平滑化係数
+constexpr float TEMP_DISPLAY_SMOOTHING_ALPHA = 0.1f;
+
+// 三角マーカーの最大値はメーター描画時（平滑化後）に更新する
 float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
@@ -217,6 +225,7 @@ void setup()
 {
   Serial.begin(115200);
 
+
   M5.begin();
   CoreS3.begin(M5.config());
   // 電源管理ICの初期化
@@ -318,6 +327,10 @@ void updateBacklightLevel()
 // ────────────────────── センサ取得 ──────────────────────
 void acquireSensorData()
 {
+  static unsigned long previousWaterTempSampleTime = 0;
+  static unsigned long previousOilTempSampleTime   = 0;
+  unsigned long now = millis();
+
   // 油圧
   if (SENSOR_OIL_PRESSURE_PRESENT) {
     int16_t raw = readAdcWithSettling(1);                  // CH1: 油圧
@@ -329,45 +342,65 @@ void acquireSensorData()
   oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
 
   // 水温
-  if (SENSOR_WATER_TEMP_PRESENT) {
-    int16_t raw = readAdcWithSettling(0);                  // CH0: 水温
-    waterTemperatureSamples[waterTemperatureSampleIndex] =
-        convertVoltageToTemp(convertAdcToVoltage(raw));
-  } else {
-    waterTemperatureSamples[waterTemperatureSampleIndex] = 0.0f;
+  if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+    if (SENSOR_WATER_TEMP_PRESENT) {
+      int16_t raw = readAdcWithSettling(0);                // CH0: 水温
+      waterTemperatureSamples[waterTemperatureSampleIndex] =
+          convertVoltageToTemp(convertAdcToVoltage(raw));
+    } else {
+      waterTemperatureSamples[waterTemperatureSampleIndex] = 0.0f;
+    }
+    waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
+    previousWaterTempSampleTime = now;
   }
-  waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
 
   // 油温
-  if (SENSOR_OIL_TEMP_PRESENT) {
-    int16_t raw = readAdcWithSettling(2);                  // CH2: 油温
-    oilTemperatureSamples[oilTemperatureSampleIndex] =
-        convertVoltageToTemp(convertAdcToVoltage(raw));
-  } else {
-    oilTemperatureSamples[oilTemperatureSampleIndex] = 0.0f;
+  if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+    if (SENSOR_OIL_TEMP_PRESENT) {
+      int16_t raw = readAdcWithSettling(2);                // CH2: 油温
+      oilTemperatureSamples[oilTemperatureSampleIndex] =
+          convertVoltageToTemp(convertAdcToVoltage(raw));
+    } else {
+      oilTemperatureSamples[oilTemperatureSampleIndex] = 0.0f;
+    }
+    oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
+    previousOilTempSampleTime = now;
   }
-  oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
 
-  // 最大値更新
-  recordedMaxOilPressure =
-      std::max(recordedMaxOilPressure, calculateAverage(oilPressureSamples));
-  recordedMaxWaterTemp   =
-      std::max(recordedMaxWaterTemp,   calculateAverage(waterTemperatureSamples));
+  // 最大値はメーター描画時に更新するためここでは何もしない
 }
 
 // ────────────────────── メーター描画 ──────────────────────
 void updateGauges()
 {
-  float pressureAvg  = calculateAverage(oilPressureSamples);
-  float waterTempAvg = calculateAverage(waterTemperatureSamples);
-  float oilTempAvg   = calculateAverage(oilTemperatureSamples);
+  static float smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
+  static float smoothOilTemp   = std::numeric_limits<float>::quiet_NaN();
 
-  int oilTempDisplay = static_cast<int>(oilTempAvg);
+  unsigned long now = millis();
+
+  float pressureAvg      = calculateAverage(oilPressureSamples);
+  float targetWaterTemp  = calculateAverage(waterTemperatureSamples);
+  float targetOilTemp    = calculateAverage(oilTemperatureSamples);
+
+  if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
+  if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
+
+  // 平滑化: 新しい値に徐々に近づける
+  smoothWaterTemp +=
+      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetWaterTemp - smoothWaterTemp);
+  smoothOilTemp   +=
+      TEMP_DISPLAY_SMOOTHING_ALPHA * (targetOilTemp   - smoothOilTemp);
+
+  int oilTempDisplay = static_cast<int>(smoothOilTemp);
   if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, oilTempDisplay);
+  // 表示している値に合わせて最大値を更新
+  recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
+  recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
+  recordedMaxOilTempTop =
+      std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
 
-  renderDisplayAndLog(pressureAvg, waterTempAvg,
+  renderDisplayAndLog(pressureAvg, smoothWaterTemp,
                       oilTempDisplay, recordedMaxOilTempTop);
 }
 
