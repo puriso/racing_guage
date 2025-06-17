@@ -71,11 +71,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   // 目盛ラベルと目盛り線を描画
-  int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
-  for (float i = 0; i <= tickCount - 1; i += 1)
+  // maxValue が tickStep の倍数でない場合でも最後の目盛が欠けないよう
+  // 値から角度を計算する方式に変更
+  for (float scaledValue = minValue; scaledValue <= maxValue + 0.0001f; scaledValue += tickStep)
   {
-    float scaledValue = minValue + (tickStep * i);
-    float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
+    float fraction = (scaledValue - minValue) / (maxValue - minValue);
+    float angle = 270 - (fraction * 270.0f);
     float rad = radians(angle);
 
     int lineX1 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
@@ -85,8 +86,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
     canvas.drawLine(lineX1, lineY1, lineX2, lineY2, WHITE);
 
-    // 整数値の目盛ラベルを描画
-    if (fmod(scaledValue, 1.0) == 0)
+    // 浮動小数点誤差でラベルが欠けないよう丸め誤差を考慮
+    if (std::fabs(scaledValue - std::round(scaledValue)) < 0.01f)
     {
       int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
       int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
