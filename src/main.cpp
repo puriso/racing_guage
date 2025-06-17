@@ -23,6 +23,7 @@ int      luxSampleIndex  = 0;
 // ── M5 & GFX ──
 M5GFX    display;
 M5Canvas mainCanvas(&display);
+M5Canvas fpsCanvas(&display);  // FPS表示用の小型スプライト
 
 // ── ADS1015 ──
 Adafruit_ADS1015 adsConverter;
@@ -169,15 +170,16 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     displayCache.waterTempAvg = waterTempAvg;
   }
 
-  // FPS (左下)
-  if (DEBUG_MODE_ENABLED) {
-    mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
-    mainCanvas.setTextSize(1);
-    mainCanvas.setCursor(5, LCD_HEIGHT - 12);
-    mainCanvas.printf("FPS:%d", currentFramesPerSecond);
-  }
-
   mainCanvas.pushSprite(0, 0);
+
+  // FPS 表示は小型スプライトで描画
+  if (DEBUG_MODE_ENABLED) {
+    fpsCanvas.fillRect(0, 0, fpsCanvas.width(), fpsCanvas.height(), COLOR_BLACK);
+    fpsCanvas.setTextColor(COLOR_WHITE);
+    fpsCanvas.setCursor(2, 1);  // 少し余白を設ける
+    fpsCanvas.printf("FPS:%d", currentFramesPerSecond);
+    fpsCanvas.pushSprite(0, LCD_HEIGHT - fpsCanvas.height());
+  }
 }
 
 // ────────────────────── 油温バー描画 ──────────────────────
@@ -244,6 +246,14 @@ void setup()
   mainCanvas.setColorDepth(16);
   mainCanvas.setTextSize(1);
   mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
+
+  // FPS用スプライトを最小サイズで作成
+  fpsCanvas.setColorDepth(16);
+  fpsCanvas.setTextSize(1);
+  fpsCanvas.setFont(&fonts::Font0);
+  int fpsW = fpsCanvas.textWidth("FPS:000") + 4;      // 余白込みの横幅
+  int fpsH = fpsCanvas.fontHeight() + 2;              // 余白込みの高さ
+  fpsCanvas.createSprite(fpsW, fpsH);
 
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
