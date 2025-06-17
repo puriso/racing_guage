@@ -2,51 +2,59 @@
 #define DRAW_FILL_ARC_METER_H
 
 #include <M5GFX.h>  // 必要なライブラリをインクルード
+
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 // 描画状態保持用構造体
-struct GaugeRenderState {
-  bool  firstDraw      = true;                                  // 初回描画かどうか
-  float previousValue  = std::numeric_limits<float>::quiet_NaN();
-  int   previousDigits = 0;                                     // 前回描画時の桁数
+struct GaugeRenderState
+{
+  bool firstDraw = true;  // 初回描画かどうか
+  float previousValue = std::numeric_limits<float>::quiet_NaN();
+  int previousDigits = 0;  // 前回描画時の桁数
 };
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,  // 目盛の間隔
+                      float tickStep,   // 目盛の間隔
                       bool useDecimal,  // 小数点を表示するかどうか
-                      int x, int y,
-                      GaugeRenderState &state
-)
+                      int x, int y, GaugeRenderState &state)
 {
   const int CENTER_X_CORRECTED = x + 75 + 5;   // スプライト内の中心X座標
   const int CENTER_Y_CORRECTED = y + 90 - 10;  // スプライト内の中心Y座標
-  const int RADIUS = 70;                   // 半円メーターの半径
-  const int ARC_WIDTH = 10;                // 弧の幅
+  const int RADIUS = 70;                       // 半円メーターの半径
+  const int ARC_WIDTH = 10;                    // 弧の幅
 
-  const uint16_t BACKGROUND_COLOR = BLACK;                // 背景色
-  const uint16_t ACTIVE_COLOR = WHITE;                    // 現在の値の色
-  const uint16_t INACTIVE_COLOR = 0x18E3;                 // メーター全体の背景色
-  const uint16_t TEXT_COLOR = WHITE;                      // テキストの色
+  const uint16_t BACKGROUND_COLOR = BLACK;  // 背景色
+  const uint16_t ACTIVE_COLOR = WHITE;      // 現在の値の色
+  const uint16_t INACTIVE_COLOR = 0x18E3;   // メーター全体の背景色
+  const uint16_t TEXT_COLOR = WHITE;        // テキストの色
 
   // 最大値を更新
   maxRecordedValue = std::max(value, maxRecordedValue);
 
-  // 毎回バー部分のみ背景色でクリア
-  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                 RADIUS - ARC_WIDTH, RADIUS,
-                 -270, 0, INACTIVE_COLOR);
+  // 初回は全体を塗りつぶし、以降は値が減少したときのみ差分を背景色で塗りつぶす
+  if (state.firstDraw)
+  {
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
+  }
+  else if (!std::isnan(state.previousValue) && value < state.previousValue)
+  {
+    float prevAngle = -270 + ((state.previousValue - minValue) / (maxValue - minValue) * 270.0f);
+    float newAngle = -270 + ((value - minValue) / (maxValue - minValue) * 270.0f);
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, newAngle, prevAngle, INACTIVE_COLOR);
+  }
 
   // 初回のみレッドゾーンと目盛りを描画
-  if (state.firstDraw) {
-    float redZoneStartAngle =
-        -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+  if (state.firstDraw)
+  {
+    float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
     canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                    RADIUS - ARC_WIDTH - 9,  // 内側半径
                    RADIUS - ARC_WIDTH - 4,  // 外側半径
                    redZoneStartAngle, 0,
-                   RED);               // レッドゾーンは常に赤表示
+                   RED);  // レッドゾーンは常に赤表示
 
     int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
     for (float i = 0; i <= tickCount - 1; i += 1)
@@ -87,8 +95,6 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     float valueAngle = -270 + ((value - minValue) / (maxValue - minValue) * 270.0);
     canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
   }
-
-
 
   // 値を右下に表示
   char valueText[10];
@@ -132,9 +138,10 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // 状態を更新
   state.firstDraw = false;
   state.previousValue = value;
-  if (!useDecimal) {
+  if (!useDecimal)
+  {
     state.previousDigits = (static_cast<int>(value) >= 100) ? 3 : 2;
   }
 }
 
-#endif // DRAW_FILL_ARC_METER_H
+#endif  // DRAW_FILL_ARC_METER_H
