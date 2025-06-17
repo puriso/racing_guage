@@ -78,6 +78,11 @@ unsigned long previousFpsTimestamp   = 0;
 int           frameCounterPerSecond  = 0;
 int           currentFramesPerSecond = 0;
 
+// ── 静的描画フラグ ──
+bool pressureGaugeStaticDrawn = false;
+bool waterGaugeStaticDrawn    = false;
+int  prevWaterTempDigits      = 0;
+
 // ────────────────────── プロトタイプ ──────────────────────
 void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp);
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
@@ -154,18 +159,28 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   if (pressureChanged) {
-    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    bool drawStatic = !pressureGaugeStaticDrawn;
+    if (drawStatic) {
+      mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    }
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
                      RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, true,   0,   60);
+                     0.5f, true,   0,   60, drawStatic);
+    pressureGaugeStaticDrawn = true;
     displayCache.pressureAvg = pressureAvg;
   }
 
   if (waterChanged) {
-    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    int digits = (waterTempAvg >= 100.0f) ? 3 : 2;
+    bool drawStatic = !waterGaugeStaticDrawn || (prevWaterTempDigits == 3 && digits == 2);
+    if (drawStatic) {
+      mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    }
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60);
+                     5.0f, false, 160,  60, drawStatic);
+    waterGaugeStaticDrawn = true;
+    prevWaterTempDigits = digits;
     displayCache.waterTempAvg = waterTempAvg;
   }
 
