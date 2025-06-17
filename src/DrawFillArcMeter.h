@@ -23,8 +23,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = WHITE;                      // テキストの色
   const uint16_t MAX_VALUE_COLOR = RED;                   // 最大値の印の色
 
-  // 値を範囲内にクランプする
-  float clampedValue = std::clamp(value, minValue, maxValue);
+  // 値を範囲内に収める
+  float clampedValue = value;
+  if (clampedValue < minValue)
+    clampedValue = minValue;
+  else if (clampedValue > maxValue)
+    clampedValue = maxValue;
   // 最大値を更新（範囲外の場合でも最大角度で保持）
   maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
