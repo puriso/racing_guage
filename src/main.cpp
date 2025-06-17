@@ -23,6 +23,18 @@ int      luxSampleIndex  = 0;
 // ── M5 & GFX ──
 M5GFX    display;
 M5Canvas mainCanvas(&display);
+M5Canvas menuCanvas(&display);          // メニュー表示用スプライト
+// ── デバッグモードとメニュー表示状態 ──
+bool debugMode  = DEBUG_MODE_ENABLED;  // 画面上で切り替え可能なデバッグモード
+bool menuVisible = false;              // メニュー表示中かどうか
+bool menuNeedsRedraw = false;          // メニュー再描画フラグ
+
+// メニューの位置とサイズ
+constexpr int MENU_X = 40;
+constexpr int MENU_Y = 80;
+constexpr int MENU_W = 240;
+constexpr int MENU_H = 80;
+constexpr int BUTTON_H = 30;
 
 // ── ADS1015 ──
 Adafruit_ADS1015 adsConverter;
@@ -76,6 +88,9 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          int16_t oilTemp, int16_t maxOilTemp);
 void updateGauges();
 void acquireSensorData();
+
+void drawMenu();        // メニュー描画
+void handleTouchMenu(); // タッチ入力処理
 
 uint32_t measureLuxWithoutBacklight();
 void     updateBacklightLevel();
@@ -162,7 +177,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   // FPS (左下)
-  if (DEBUG_MODE_ENABLED) {
+  if (debugMode) {
     mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
     mainCanvas.setTextSize(1);
     mainCanvas.setCursor(5, LCD_HEIGHT - 12);
@@ -236,6 +251,10 @@ void setup()
   mainCanvas.setTextSize(1);
   mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
 
+  menuCanvas.setColorDepth(16);  // メニュー用スプライト初期化
+  menuCanvas.setTextSize(1);
+  menuCanvas.createSprite(MENU_W, MENU_H);
+
   M5.Lcd.clear();
   M5.Lcd.fillScreen(COLOR_BLACK);
 
@@ -285,7 +304,7 @@ void updateBacklightLevel()
   }
 
   uint32_t lux = measureLuxWithoutBacklight();
-  if (DEBUG_MODE_ENABLED) Serial.printf("[ALS] lux=%lu\n", lux);
+  if (debugMode) Serial.printf("[ALS] lux=%lu\n", lux);
 
   luxSampleBuffer[luxSampleIndex] = lux;
   luxSampleIndex = (luxSampleIndex + 1) % MEDIAN_BUFFER_SIZE;
@@ -306,7 +325,7 @@ void updateBacklightLevel()
         (newMode == BrightnessMode::Dusk) ? BACKLIGHT_DUSK : BACKLIGHT_NIGHT;
     display.setBrightness(targetB);
 
-    if (DEBUG_MODE_ENABLED) {
+    if (debugMode) {
       const char* s =
           (newMode == BrightnessMode::Day)  ? "DAY"  :
           (newMode == BrightnessMode::Dusk) ? "DUSK" : "NIGHT";
@@ -371,11 +390,84 @@ void updateGauges()
                       oilTempDisplay, recordedMaxOilTempTop);
 }
 
+// ────────────────────── メニュー描画 ──────────────────────
+void drawMenu()
+{
+  // 背景と枠
+  menuCanvas.fillRect(0, 0, MENU_W, MENU_H, COLOR_BLACK);
+  menuCanvas.drawRect(0, 0, MENU_W, MENU_H, COLOR_WHITE);
+
+  // デバッグ切替ボタン
+  menuCanvas.drawRect(10, 10, MENU_W - 20, BUTTON_H, COLOR_WHITE);
+  menuCanvas.setCursor(20, 20);
+  menuCanvas.printf("DEBUG:%s", debugMode ? "ON" : "OFF");
+
+  // クローズボタン
+  menuCanvas.drawRect(10, MENU_H - BUTTON_H - 10, MENU_W - 20, BUTTON_H, COLOR_WHITE);
+  menuCanvas.setCursor(20, MENU_H - BUTTON_H);
+  menuCanvas.print("CLOSE");
+
+  menuNeedsRedraw = true;
+}
+
+// ────────────────────── タッチ入力処理 ──────────────────────
+void handleTouchMenu()
+{
+  auto count = M5.Touch.getCount();
+  if (!count) return;
+
+  auto t = M5.Touch.getDetail();
+
+  if (!menuVisible) {
+    if (t.wasReleased()) {
+      menuVisible = true;
+      drawMenu();
+      menuCanvas.pushSprite(MENU_X, MENU_Y);
+    }
+    return;
+  }
+
+  if (t.wasReleased()) {
+    int x = t.x;
+    int y = t.y;
+    // デバッグボタン領域
+    if (x >= MENU_X + 10 && x <= MENU_X + MENU_W - 10 &&
+        y >= MENU_Y + 10 && y <= MENU_Y + 10 + BUTTON_H) {
+      debugMode = !debugMode;
+      drawMenu();
+      menuCanvas.pushSprite(MENU_X, MENU_Y);
+      return;
+    }
+    // クローズボタン領域
+    if (x >= MENU_X + 10 && x <= MENU_X + MENU_W - 10 &&
+        y >= MENU_Y + MENU_H - BUTTON_H - 10 && y <= MENU_Y + MENU_H - 10) {
+      menuVisible = false;
+      // 次回描画を強制するためキャッシュをリセット
+      displayCache.pressureAvg = std::numeric_limits<float>::quiet_NaN();
+      displayCache.waterTempAvg = std::numeric_limits<float>::quiet_NaN();
+      displayCache.oilTemp = INT16_MIN;
+      displayCache.maxOilTemp = INT16_MIN;
+      menuNeedsRedraw = false;
+    }
+  }
+}
+
 // ────────────────────── loop() ──────────────────────
 void loop()
 {
   static unsigned long previousAlsSampleTime = 0;
   unsigned long now = millis();
+
+  M5.update();               // ボタン・タッチ状態更新
+  handleTouchMenu();         // メニュー処理
+  if (menuVisible) {         // メニュー表示中は計測・描画を停止
+    if (menuNeedsRedraw) {
+      menuCanvas.pushSprite(MENU_X, MENU_Y);
+      menuNeedsRedraw = false;
+    }
+    delay(10);
+    return;
+  }
 
   if (now - previousAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
     updateBacklightLevel();
@@ -388,7 +480,7 @@ void loop()
   frameCounterPerSecond++;
   if (now - previousFpsTimestamp >= 1000UL) {
     currentFramesPerSecond = frameCounterPerSecond;
-    if (DEBUG_MODE_ENABLED) Serial.printf("FPS:%d\n", currentFramesPerSecond);
+    if (debugMode) Serial.printf("FPS:%d\n", currentFramesPerSecond);
     frameCounterPerSecond = 0;
     previousFpsTimestamp  = now;
   }
