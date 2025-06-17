@@ -2,26 +2,26 @@
 #define DRAW_FILL_ARC_METER_H
 
 #include <M5GFX.h>  // 必要なライブラリをインクルード
+
 #include <algorithm>
 #include <cmath>
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,  // 目盛の間隔
+                      float tickStep,   // 目盛の間隔
                       bool useDecimal,  // 小数点を表示するかどうか
-                      int x, int y
-)
+                      int x, int y)
 {
   const int CENTER_X_CORRECTED = x + 75 + 5;   // スプライト内の中心X座標
   const int CENTER_Y_CORRECTED = y + 90 - 10;  // スプライト内の中心Y座標
-  const int RADIUS = 70;                   // 半円メーターの半径
-  const int ARC_WIDTH = 10;                // 弧の幅
+  const int RADIUS = 70;                       // 半円メーターの半径
+  const int ARC_WIDTH = 10;                    // 弧の幅
 
-  const uint16_t BACKGROUND_COLOR = BLACK;                // 背景色
-  const uint16_t ACTIVE_COLOR = WHITE;                    // 現在の値の色
-  const uint16_t INACTIVE_COLOR = 0x18E3;                 // メーター全体の背景色
-  const uint16_t TEXT_COLOR = WHITE;                      // テキストの色
-  const uint16_t MAX_VALUE_COLOR = RED;                   // 最大値の印の色
+  const uint16_t BACKGROUND_COLOR = BLACK;  // 背景色
+  const uint16_t ACTIVE_COLOR = WHITE;      // 現在の値の色
+  const uint16_t INACTIVE_COLOR = 0x18E3;   // メーター全体の背景色
+  const uint16_t TEXT_COLOR = WHITE;        // テキストの色
+  const uint16_t MAX_VALUE_COLOR = RED;     // 最大値の印の色
 
   // 値を範囲内に収める
   float clampedValue = value;
@@ -37,13 +37,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // レッドゾーンの背景を描画
   // 背景グレーと 1px の隙間を空け常に赤で表示する
-  float redZoneStartAngle =
-      -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+  float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                  RADIUS - ARC_WIDTH - 9,  // 内側半径
                  RADIUS - ARC_WIDTH - 4,  // 外側半径
                  redZoneStartAngle, 0,
-                 RED);               // レッドゾーンは常に赤表示
+                 RED);  // レッドゾーンは常に赤表示
 
   // 現在の値に対応する部分を塗りつぶし
   // クランプ後の値でバーを描画
@@ -51,9 +50,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   {
     uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
     float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                   RADIUS - ARC_WIDTH, RADIUS,
-                   -270, valueAngle, barColor);
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
   }
 
   // 最大値の印を表示
@@ -138,4 +135,4 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   canvas.print(combinedLabel);
 }
 
-#endif // DRAW_FILL_ARC_METER_H
+#endif  // DRAW_FILL_ARC_METER_H
