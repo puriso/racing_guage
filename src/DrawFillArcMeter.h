@@ -33,8 +33,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // グレー背景から 1px 離すため外側半径を 1px 内側にずらす
   float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                 RADIUS - ARC_WIDTH - 5,  // 内側半径はそのまま
-                 RADIUS - ARC_WIDTH - 1,  // 外側半径を 1px 内側へ
+                 RADIUS - ARC_WIDTH - 9,  // 内側半径
+                 RADIUS - ARC_WIDTH - 4,  // 外側半径
                  redZoneStartAngle, 0,
                  RED);                   // 常に赤で表示
 
