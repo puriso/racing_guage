@@ -12,16 +12,19 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                       bool useDecimal,  // 小数点を表示するかどうか
                       int x, int y)
 {
-  const int CENTER_X_CORRECTED = x + 75 + 5;   // スプライト内の中心X座標
-  const int CENTER_Y_CORRECTED = y + 90 - 10;  // スプライト内の中心Y座標
-  const int RADIUS = 70;                       // 半円メーターの半径
-  const int ARC_WIDTH = 10;                    // 弧の幅
+  // 左端を 1px 固定しつつ数値表示位置は従来通りに保つ
+  const int GAUGE_LEFT = x + 1;                    // 円メーターの左端
+  const int CENTER_X_CORRECTED = GAUGE_LEFT + 70;  // 半径 70px を考慮した中心X座標
+  const int VALUE_BASE_X = x + 160;                // 数値表示位置
+  const int CENTER_Y_CORRECTED = y + 90 - 10;      // スプライト内の中心Y座標
+  const int RADIUS = 70;                           // 半円メーターの半径
+  const int ARC_WIDTH = 10;                        // 弧の幅
 
-  const uint16_t BACKGROUND_COLOR = BLACK;  // 背景色
-  const uint16_t ACTIVE_COLOR = WHITE;      // 現在の値の色
-  const uint16_t INACTIVE_COLOR = 0x18E3;   // メーター全体の背景色
-  const uint16_t TEXT_COLOR = WHITE;        // テキストの色
-  const uint16_t MAX_VALUE_COLOR = RED;     // 最大値の印の色
+  const uint16_t BACKGROUND_COLOR = COLOR_BLACK;  // 背景色
+  const uint16_t ACTIVE_COLOR = COLOR_WHITE;      // 現在の値の色
+  const uint16_t INACTIVE_COLOR = 0x18E3;         // メーター全体の背景色
+  const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
+  const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 最大値の印の色
 
   // 値を範囲内に収める
   float clampedValue = value;
@@ -42,7 +45,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                  RADIUS - ARC_WIDTH - 9,  // 内側半径
                  RADIUS - ARC_WIDTH - 4,  // 外側半径
                  redZoneStartAngle, 0,
-                 RED);  // レッドゾーンは常に赤表示
+                 COLOR_RED);  // レッドゾーンは常に赤表示
 
   // 現在の値に対応する部分を塗りつぶし
   // クランプ後の値でバーを描画
@@ -89,7 +92,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     int lineX2 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
     int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
 
-    canvas.drawLine(lineX1, lineY1, lineX2, lineY2, WHITE);
+    canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
 
     // 整数値の目盛ラベルを描画
     if (fmod(scaledValue, 1.0) == 0)
@@ -120,7 +123,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   canvas.setFont(&FreeSansBold24pt7b);
-  int valueX = CENTER_X_CORRECTED + RADIUS + 10;
+  int valueX = VALUE_BASE_X;  // 数字は固定位置に表示
   int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
   canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
   canvas.print(valueText);
