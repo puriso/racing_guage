@@ -29,9 +29,11 @@ constexpr uint16_t COLOR_YELLOW = rgb565(255, 255, 0);
 constexpr uint16_t COLOR_RED    = rgb565(255,   0, 0);
 constexpr uint16_t COLOR_GRAY   = rgb565(169, 169, 169);
 
-// ── 油圧表示上限 ──
-// メーターおよび数値表示が 9.9 bar を超えないようにする
-constexpr float MAX_OIL_PRESSURE_DISPLAY = 9.9f;
+// ── 油圧の表示設定 ──
+// 数値表示の上限 (バー単位)
+constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
+// メーター目盛の上限
+constexpr float MAX_OIL_PRESSURE_METER   = 10.0f;
 
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
