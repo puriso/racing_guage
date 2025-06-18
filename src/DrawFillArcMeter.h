@@ -26,8 +26,15 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = RED;     // 最大値の印の色
 
-  // 最大値を更新
-  maxRecordedValue = std::max(value, maxRecordedValue);
+  // 値を範囲内に収める
+  float clampedValue = value;
+  if (clampedValue < minValue)
+    clampedValue = minValue;
+  else if (clampedValue > maxValue)
+    clampedValue = maxValue;
+
+  // 最大値を更新（範囲外でも記録）
+  maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
   // メーター全体を塗りつぶし（非アクティブ部分）
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
@@ -41,11 +48,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                  redZoneStartAngle, 0,
                  RED);  // レッドゾーンは常に赤表示
 
-  // 現在の値に対応する部分を塗りつぶし
-  if (value >= minValue && value <= maxValue * 1.1)
+  // 現在の値に対応する部分を塗りつぶし（clampedValue を使用）
+  if (clampedValue >= minValue)
   {
     uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
-    float valueAngle = -270 + ((value - minValue) / (maxValue - minValue) * 270.0);
+    float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
     canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
   }
 
