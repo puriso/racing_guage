@@ -1,4 +1,4 @@
-# M5Stack CoreS3 Multi-Gauge  
+# M5Stack CoreS3 Multi-Gauge
 # M5Stack CoreS3 マルチメーター
 
 A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays:
@@ -21,7 +21,8 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ### 主な機能
 - 油圧・燃圧・ブースト (0–9.9 bar) 半円アナログメーター
   - 本リポジトリでは **油圧**・**油温** を実装済み
-- 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
+  - 油圧が 8 bar 以上、または 0.3 bar 以下でメーターが赤色表示
+- 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示
 - 各種設定は `include/config.h` の定数で変更可能
 
 ### ハードウェア構成
@@ -51,6 +52,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 ### Features
 - Semi-circular analog gauge (0–9.9 bar, pressure)
   - In this repository, **oil pressure** and **oil temperature** are implemented.
+  - Gauge turns red at 8 bar or above, and also below 0.3 bar
 - Digital + bar graph temperature display
 - Most settings are in `include/config.h`
 
