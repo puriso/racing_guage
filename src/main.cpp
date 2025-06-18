@@ -47,12 +47,9 @@ constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
 // 表示を滑らかにするための平滑化係数
 constexpr float TEMP_DISPLAY_SMOOTHING_ALPHA = 0.1f;
 
-// 三角マーカーの最大値はメーター描画時（平滑化後）に更新する
-float recordedMaxOilPressure = 0.0f;
-float recordedMaxWaterTemp   = 0.0f;
-int   recordedMaxOilTempTop  = 0;
-
-// メーター描画状態
+// 最大油温はトップバー描画用に保持
+int recordedMaxOilTempTop = 0;
+// ゲージ描画状態
 GaugeRenderState pressureGaugeState;
 GaugeRenderState waterGaugeState;
 
@@ -158,16 +155,25 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   }
 
   if (pressureChanged) {
-    drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_DISPLAY,  8.0f,
-                     RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, true,   0,   60, pressureGaugeState);
+    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    drawFillArcMeter(mainCanvas, pressureAvg, 0.0f, MAX_OIL_PRESSURE_DISPLAY, 8.0f,
+                     COLOR_RED, "BAR", "OIL.P",
+                     0.5f, true, 0, 60, pressureGaugeState);
     displayCache.pressureAvg = pressureAvg;
   }
 
   if (waterChanged) {
-    drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
-                     RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60, waterGaugeState);
+    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    bool prev3 = !std::isnan(waterGaugeState.previousValue) &&
+                 waterGaugeState.previousValue >= 100.0f;
+    bool curr3 = waterTempAvg >= 100.0f;
+    if (prev3 && !curr3) {
+      waterGaugeState.firstDraw     = true;
+      waterGaugeState.previousValue = std::numeric_limits<float>::quiet_NaN();
+    }
+    drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f, 110.0f, 98.0f,
+                     COLOR_RED, "Celsius", "WATER.T",
+                     5.0f, false, 160, 60, waterGaugeState);
     displayCache.waterTempAvg = waterTempAvg;
   }
 
@@ -398,9 +404,7 @@ void updateGauges()
   int oilTempDisplay = static_cast<int>(smoothOilTemp);
   if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
 
-  // 表示している値に合わせて最大値を更新
-  recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
-  recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
+  // 表示している値に合わせて最大油温を更新
   recordedMaxOilTempTop =
       std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
 
