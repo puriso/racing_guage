@@ -14,11 +14,12 @@ struct GaugeRenderState {
   int   previousDigits = 0;                               // 前回描画時の桁数
 };
 
-void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
-                      uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
+void drawFillArcMeter(M5Canvas& canvas, float value, float minValue, float maxValue, float threshold,
+                      uint16_t overThresholdColor, const char* unit, const char* label, float& maxRecordedValue,
                       float tickStep,   // 目盛の間隔
                       bool useDecimal,  // 小数点を表示するかどうか
-                      int x, int y, GaugeRenderState &state) {
+                      int x, int y, GaugeRenderState& state)
+{
   const int CENTER_X_CORRECTED = x + 75 + 5;   // スプライト内の中心X座標
   const int CENTER_Y_CORRECTED = y + 90 - 10;  // スプライト内の中心Y座標
   const int RADIUS             = 70;           // 半円メーターの半径
