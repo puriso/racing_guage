@@ -32,7 +32,6 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     clampedValue = minValue;
   else if (clampedValue > maxValue)
     clampedValue = maxValue;
-
   // 最大値を更新（範囲外でも記録）
   maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
