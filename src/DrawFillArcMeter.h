@@ -20,6 +20,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const int RADIUS = 70;                           // 半円メーターの半径
   const int ARC_WIDTH = 10;                        // 弧の幅
 
+
   const uint16_t BACKGROUND_COLOR = BLACK;  // 背景色
   const uint16_t ACTIVE_COLOR = WHITE;      // 現在の値の色
   const uint16_t INACTIVE_COLOR = 0x18E3;   // メーター全体の背景色
@@ -36,7 +37,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
   // メーター全体を塗りつぶし（非アクティブ部分）
-  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
+  canvas.fillArc(
+    , CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
 
   // レッドゾーンの背景を描画
   // 背景グレーと 1px の隙間を空け常に赤で表示する
