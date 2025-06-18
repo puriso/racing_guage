@@ -155,9 +155,11 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 
   if (pressureChanged) {
     mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    // 10.0以上は小数点を表示しない
+    bool useDecimal = pressureAvg < 10.0f;
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_METER,  8.0f,
                      COLOR_RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, true,   0,   60);
+                     0.5f, useDecimal,   0,   60);
     displayCache.pressureAvg = pressureAvg;
   }
 
