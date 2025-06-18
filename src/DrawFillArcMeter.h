@@ -11,7 +11,6 @@
 struct GaugeRenderState {
   bool  firstDraw     = true;                             // 初回描画かどうか
   float previousValue = std::numeric_limits<float>::quiet_NaN();
-  int   previousDigits = 0;                               // 前回描画時の桁数
 };
 
 void drawFillArcMeter(M5Canvas& canvas, float value, float minValue, float maxValue, float threshold,
@@ -134,9 +133,6 @@ void drawFillArcMeter(M5Canvas& canvas, float value, float minValue, float maxVa
   // 状態を更新
   state.firstDraw    = false;
   state.previousValue = value;
-  if (!useDecimal) {
-    state.previousDigits = (static_cast<int>(value) >= 100) ? 3 : 2;
-  }
 }
 
 #endif  // DRAW_FILL_ARC_METER_H

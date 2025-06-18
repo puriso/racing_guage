@@ -164,14 +164,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     displayCache.pressureAvg = pressureAvg;
   }
 
-  int waterDigits = (static_cast<int>(waterTempAvg) >= 100) ? 3 : 2;
-  bool waterRedraw = (waterGaugeState.previousDigits == 3 && waterDigits == 2);
-
-  if (waterChanged || waterRedraw) {
-    if (waterRedraw) {
-      mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
-      waterGaugeState.firstDraw = true;
-    }
+  if (waterChanged) {
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
                      5.0f, false, 160,  60, waterGaugeState);
