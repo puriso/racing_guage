@@ -5,6 +5,27 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+
+// ────────────────────── 描画キャッシュ ──────────────────────
+// 角度計算を初回だけにすることで FPS 改善を狙う
+struct GaugeCache {
+  bool   ready      = false;         // 初期化済みか
+  int    tickCount  = 0;             // 目盛数
+  int    lineX1[40];                 // 目盛線座標
+  int    lineY1[40];
+  int    lineX2[40];
+  int    lineY2[40];
+  int    labelX[40];                 // 目盛ラベル座標
+  int    labelY[40];
+  bool   hasLabel[40];               // ラベルを描画するか
+  char   labelText[40][6];           // ラベル文字列
+  int    centerX    = 0;             // 座標計算用
+  int    centerY    = 0;
+};
+
+static GaugeCache oilCache;      // OIL.P 用
+static GaugeCache waterCache;    // WATER.T 用
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
@@ -25,6 +46,33 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t INACTIVE_COLOR = 0x18E3;         // メーター全体の背景色
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 最大値の印の色
+
+  // ラベル名でキャッシュを振り分ける
+  GaugeCache* cache = (strcmp(label, "OIL.P") == 0) ? &oilCache : &waterCache;
+
+  if (!cache->ready) {
+    cache->centerX   = CENTER_X_CORRECTED;
+    cache->centerY   = CENTER_Y_CORRECTED;
+    cache->tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
+    for (int i = 0; i < cache->tickCount; ++i) {
+      float angle = 270 - ((270.0f / (cache->tickCount - 1)) * i);
+      float rad   = radians(angle);
+      float scaledValue = minValue + (tickStep * i);
+
+      cache->lineX1[i] = cache->centerX + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
+      cache->lineY1[i] = cache->centerY - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
+      cache->lineX2[i] = cache->centerX + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
+      cache->lineY2[i] = cache->centerY - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
+      cache->labelX[i] = cache->centerX + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
+      cache->labelY[i] = cache->centerY - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
+
+      cache->hasLabel[i] = (fmod(scaledValue, 1.0f) == 0.0f);
+      if (cache->hasLabel[i]) {
+        snprintf(cache->labelText[i], sizeof(cache->labelText[i]), "%.0f", scaledValue);
+      }
+    }
+    cache->ready = true;
+  }
 
   // 値を範囲内に収める
   float clampedValue = value;
@@ -79,35 +127,20 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     );
   }
 
-  // 目盛ラベルと目盛り線を描画
-  int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
-  for (float i = 0; i <= tickCount - 1; i += 1)
+  // 目盛ラベルと目盛り線を描画 (キャッシュ利用)
+  for (int i = 0; i < cache->tickCount; ++i)
   {
-    float scaledValue = minValue + (tickStep * i);
-    float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
-    float rad = radians(angle);
+    canvas.drawLine(cache->lineX1[i], cache->lineY1[i],
+                    cache->lineX2[i], cache->lineY2[i], COLOR_WHITE);
 
-    int lineX1 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
-    int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
-    int lineX2 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
-    int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
-
-    canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
-
-    // 整数値の目盛ラベルを描画
-    if (fmod(scaledValue, 1.0) == 0)
+    if (cache->hasLabel[i])
     {
-      int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
-      int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
-
-      char labelText[6];
-      snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
-
       canvas.setTextFont(1);
       canvas.setFont(&fonts::Font0);
       canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-      canvas.setCursor(labelX - (canvas.textWidth(labelText) / 2), labelY - 4);
-      canvas.print(labelText);
+      canvas.setCursor(cache->labelX[i] - (canvas.textWidth(cache->labelText[i]) / 2),
+                      cache->labelY[i] - 4);
+      canvas.print(cache->labelText[i]);
     }
   }
 
