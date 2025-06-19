@@ -176,8 +176,9 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      COLOR_RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60,
-                     !waterGaugeInitialized);
+                     2.5f, false, 160,  60,
+                     !waterGaugeInitialized,
+                     5.0f, 80.0f);
     waterGaugeInitialized = true;
     displayCache.waterTempAvg = waterTempAvg;
   }

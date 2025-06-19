@@ -8,10 +8,12 @@
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,   // 目盛の間隔
+                      float tickStep,   // 目盛の間隔（細かい目盛り）
                       bool useDecimal,  // 小数点を表示するかどうか
                       int x, int y,
-                      bool drawStatic)
+                      bool drawStatic,
+                      float majorTickStep = -1.0f, // 数字を表示する目盛間隔（負なら旧仕様）
+                      float labelStart    = 0.0f)  // ラベル描画を開始する値
 {
   // 左端を 1px 固定しつつ数値表示位置は従来通りに保つ
   const int GAUGE_LEFT = x + 1;                    // 円メーターの左端
@@ -76,8 +78,18 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
       canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
 
-      // 整数値の目盛ラベルを描画
-      if (fmod(scaledValue, 1.0) == 0)
+      bool drawLabel;
+      if (majorTickStep < 0)
+      {
+        drawLabel = (fmod(scaledValue, 1.0f) == 0.0f);
+      }
+      else
+      {
+        float diff = fmod(scaledValue - labelStart, majorTickStep);
+        drawLabel = (scaledValue >= labelStart) && (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
+      }
+
+      if (drawLabel)
       {
         int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
         int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
