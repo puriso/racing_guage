@@ -176,7 +176,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
     drawFillArcMeter(mainCanvas, waterTempAvg, WATER_TEMP_METER_MIN, WATER_TEMP_METER_MAX, 98.0f,
                      COLOR_RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     2.5f, false, 160,  60,
+                     1.0f, false, 160,  60,
                      !waterGaugeInitialized,
                      5.0f, WATER_TEMP_METER_MIN);
     waterGaugeInitialized = true;
