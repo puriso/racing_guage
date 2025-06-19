@@ -208,7 +208,9 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
   canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
   if (oilTemp >= MIN_TEMP) {
-    int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
+    // 値が範囲外の場合はバー幅が画面外にはみ出さないようにクランプ
+    int clampedTemp = std::min(std::max(oilTemp, MIN_TEMP), MAX_TEMP);
+    int barWidth = static_cast<int>(W * (clampedTemp - MIN_TEMP) / RANGE);
     uint32_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
     canvas.fillRect(X, Y, barWidth, H, barColor);
   }
