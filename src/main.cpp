@@ -58,13 +58,14 @@ bool  waterGaugeInitialized    = false;
 
 // ── 表示キャッシュ ──
 struct DisplayCache {
-  float  pressureAvg;
-  float  waterTempAvg;
-  int16_t oilTemp;
+  float pressureAvg;
+  float waterTempAvg;
+  float oilTemp;
   int16_t maxOilTemp;
 } displayCache = {std::numeric_limits<float>::quiet_NaN(),
                   std::numeric_limits<float>::quiet_NaN(),
-                  INT16_MIN, INT16_MIN};
+                  std::numeric_limits<float>::quiet_NaN(),
+                  INT16_MIN};
 // 初回描画を強制するため NaN と最小値で初期化しておく
 
 // ── 電圧→物理量変換定数 ──
@@ -83,9 +84,9 @@ int           frameCounterPerSecond  = 0;
 int           currentFramesPerSecond = 0;
 
 // ────────────────────── プロトタイプ ──────────────────────
-void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp);
+void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp);
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
-                         int16_t oilTemp, int16_t maxOilTemp);
+                         float oilTemp, int16_t maxOilTemp);
 void updateGauges();
 void acquireSensorData();
 
@@ -132,15 +133,15 @@ int16_t readAdcWithSettling(uint8_t ch)
 
 // ────────────────────── 画面更新＋ログ ──────────────────────
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
-                         int16_t oilTemp, int16_t maxOilTemp)
+                         float oilTemp, int16_t maxOilTemp)
 {
   // 描画領域計算
   const int TOPBAR_Y = 0, TOPBAR_H = 50;
   const int GAUGE_H  = 170;
 
   // 変化検知。初回は必ず描画するため NaN/最小値を使用
-  bool oilChanged = (displayCache.oilTemp == INT16_MIN) ||
-                    (oilTemp != displayCache.oilTemp) ||
+  bool oilChanged = std::isnan(displayCache.oilTemp) ||
+                    fabs(oilTemp - displayCache.oilTemp) > 0.01f ||
                     (maxOilTemp != displayCache.maxOilTemp);
   bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
                          fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
@@ -195,7 +196,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 }
 
 // ────────────────────── 油温バー描画 ──────────────────────
-void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
+void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 {
   constexpr int MIN_TEMP   =  80;
   constexpr int MAX_TEMP   = 130;
@@ -229,7 +230,8 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, int oilTemp, int maxOilTemp)
 
   canvas.setCursor(X, Y + H + 4);
   canvas.printf("OIL.T / Celsius,  MAX:%03d", maxOilTemp);
-  char tempStr[6]; sprintf(tempStr, "%d", oilTemp);
+  char tempStr[6];
+  sprintf(tempStr, "%d", static_cast<int>(oilTemp));
   canvas.setFont(&FreeSansBold24pt7b);
   canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
 }
@@ -407,8 +409,8 @@ void updateGauges()
   smoothOilTemp   +=
       TEMP_DISPLAY_SMOOTHING_ALPHA * (targetOilTemp   - smoothOilTemp);
 
-  int oilTempDisplay = static_cast<int>(smoothOilTemp);
-  if (!SENSOR_OIL_TEMP_PRESENT) oilTempDisplay = 0;
+  float oilTempValue = smoothOilTemp;
+  if (!SENSOR_OIL_TEMP_PRESENT) oilTempValue = 0.0f;
 
   // 表示している値に合わせて最大値を更新
   recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
@@ -417,7 +419,7 @@ void updateGauges()
       std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
 
   renderDisplayAndLog(pressureAvg, smoothWaterTemp,
-                      oilTempDisplay, recordedMaxOilTempTop);
+                      oilTempValue, recordedMaxOilTempTop);
 }
 
 // ────────────────────── loop() ──────────────────────
