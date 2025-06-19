@@ -210,8 +210,22 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
-    uint32_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
-    canvas.fillRect(X, Y, barWidth, H, barColor);
+    barWidth = std::min(barWidth, W);
+
+    // レッドゾーンに到達するまでの幅を計算
+    int thresholdWidth = static_cast<int>(W * (ALERT_TEMP - MIN_TEMP) / RANGE);
+    int normalWidth    = std::min(barWidth, thresholdWidth);
+
+    // 通常領域は白で塗りつぶす
+    if (normalWidth > 0) {
+      canvas.fillRect(X, Y, normalWidth, H, COLOR_WHITE);
+    }
+
+    // レッドゾーンに入った部分だけ赤で塗りつぶす
+    if (barWidth > thresholdWidth) {
+      int redWidth = barWidth - thresholdWidth;
+      canvas.fillRect(X + thresholdWidth, Y, redWidth, H, COLOR_RED);
+    }
   }
 
   const int marks[] = {80, 90, 100, 110, 120, 130};
