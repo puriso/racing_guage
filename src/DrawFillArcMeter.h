@@ -71,23 +71,30 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
       float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
       float rad = radians(angle);
 
-      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
-      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
-      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
-      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
-
-      canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
-
-      bool drawLabel;
+      // 主要目盛かどうかを判定（majorTickStep が負なら従来と同じ判定）
+      bool isMajorTick;
       if (majorTickStep < 0)
       {
-        drawLabel = (fmod(scaledValue, 1.0f) == 0.0f);
+        isMajorTick = (fmod(scaledValue, 1.0f) == 0.0f);
       }
       else
       {
         float diff = fmod(scaledValue - labelStart, majorTickStep);
-        drawLabel = (scaledValue >= labelStart) && (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
+        isMajorTick = (scaledValue >= labelStart) && (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
       }
+
+      // 主要目盛は長めの線、細かい目盛は短めの線を描画
+      int innerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 10) : (RADIUS - ARC_WIDTH - 8);
+      int outerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 5)  : (RADIUS - ARC_WIDTH - 7);
+
+      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * innerRadius);
+      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * innerRadius);
+      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * outerRadius);
+      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * outerRadius);
+
+      canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
+
+      bool drawLabel = isMajorTick;
 
       if (drawLabel)
       {
