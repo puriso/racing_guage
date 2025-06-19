@@ -109,8 +109,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   int valueX = VALUE_BASE_X;  // 数字は固定位置に表示
   int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
   // 数字描画領域のみを毎回黒で塗りつぶす
-  canvas.fillRect(valueX - 60, valueY - canvas.fontHeight() / 2 - 2,
-                  60, canvas.fontHeight() + 4, BACKGROUND_COLOR);
+  canvas.fillRect(valueX - 65, valueY - canvas.fontHeight() / 2 - 2,
+                  65, canvas.fontHeight() + 4, BACKGROUND_COLOR);
   canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
   canvas.print(valueText);
 
