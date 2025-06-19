@@ -35,6 +35,10 @@ constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
 // メーター目盛の上限
 constexpr float MAX_OIL_PRESSURE_METER   = 10.0f;
 
+// ── 水温メーター設定 ──
+constexpr float WATER_TEMP_METER_MIN = 80.0f;  // 水温メーター下限
+constexpr float WATER_TEMP_METER_MAX = 110.0f; // 水温メーター上限
+
 // ── 画面サイズ ──
 constexpr int LCD_WIDTH  = 320;
 constexpr int LCD_HEIGHT = 240;
