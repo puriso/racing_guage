@@ -185,7 +185,8 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
   // FPS (左下)
   if (DEBUG_MODE_ENABLED) {
     mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
-    mainCanvas.setTextSize(1);
+    mainCanvas.setFont(&fonts::Font0);
+    mainCanvas.setTextSize(0);
     mainCanvas.setCursor(5, LCD_HEIGHT - 12);
     mainCanvas.printf("FPS:%d", currentFramesPerSecond);
   }

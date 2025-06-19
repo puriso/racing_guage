@@ -92,6 +92,15 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
         canvas.print(labelText);
       }
     }
+
+    // 単位とメーター名を表示
+    char combinedLabel[30];
+    snprintf(combinedLabel, sizeof(combinedLabel), "%s / %s", label, unit);
+    canvas.setFont(&fonts::Font0);
+    int labelX = CENTER_X_CORRECTED;
+    int labelY = CENTER_Y_CORRECTED + RADIUS + 15;
+    canvas.setCursor(labelX - (canvas.textWidth(combinedLabel) / 2), labelY);
+    canvas.print(combinedLabel);
   }
 
   // 値を右下に表示
@@ -109,19 +118,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   int valueX = VALUE_BASE_X;  // 数字は固定位置に表示
   int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
   // 数字描画領域のみを毎回黒で塗りつぶす
-  canvas.fillRect(valueX - 65, valueY - canvas.fontHeight() / 2 - 2,
-                  65, canvas.fontHeight() + 4, BACKGROUND_COLOR);
+  canvas.fillRect(valueX - 70, valueY - canvas.fontHeight() / 2 - 2,
+                  70, canvas.fontHeight() + 4, BACKGROUND_COLOR);
   canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
   canvas.print(valueText);
 
-  // 単位とメーター名を表示
-  char combinedLabel[30];
-  snprintf(combinedLabel, sizeof(combinedLabel), "%s / %s", label, unit);
-  canvas.setFont(&fonts::Font0);
-  int labelX = CENTER_X_CORRECTED;
-  int labelY = CENTER_Y_CORRECTED + RADIUS + 15;
-  canvas.setCursor(labelX - (canvas.textWidth(combinedLabel) / 2), labelY);
-  canvas.print(combinedLabel);
 }
 
 #endif  // DRAW_FILL_ARC_METER_H
