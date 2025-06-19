@@ -52,6 +52,10 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp   = 0.0f;
 int   recordedMaxOilTempTop  = 0;
 
+// メーター描画済みかどうかのフラグ
+bool  pressureGaugeInitialized = false;
+bool  waterGaugeInitialized    = false;
+
 // ── 表示キャッシュ ──
 struct DisplayCache {
   float  pressureAvg;
@@ -153,28 +157,36 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     displayCache.maxOilTemp = maxOilTemp;
   }
 
-  if (pressureChanged) {
-    mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
-    // 10.0も含め10.0以上では小数点を表示しないよう、9.95以上で判定
-    bool useDecimal = pressureAvg < 9.95f;
+  if (pressureChanged || !pressureGaugeInitialized) {
+    if (!pressureGaugeInitialized) {
+      mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+    }
+    bool useDecimal = pressureAvg < 9.95f;  // 9.95以上で小数点非表示
     drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_METER,  8.0f,
                      COLOR_RED, "BAR", "OIL.P", recordedMaxOilPressure,
-                     0.5f, useDecimal,   0,   60);
+                     0.5f, useDecimal,   0,   60,
+                     !pressureGaugeInitialized);
+    pressureGaugeInitialized = true;
     displayCache.pressureAvg = pressureAvg;
   }
 
-  if (waterChanged) {
-    mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+  if (waterChanged || !waterGaugeInitialized) {
+    if (!waterGaugeInitialized) {
+      mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+    }
     drawFillArcMeter(mainCanvas, waterTempAvg, 50.0f,110.0f, 98.0f,
                      COLOR_RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
-                     5.0f, false, 160,  60);
+                     5.0f, false, 160,  60,
+                     !waterGaugeInitialized);
+    waterGaugeInitialized = true;
     displayCache.waterTempAvg = waterTempAvg;
   }
 
   // FPS (左下)
   if (DEBUG_MODE_ENABLED) {
     mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
-    mainCanvas.setTextSize(1);
+    mainCanvas.setFont(&fonts::Font0);
+    mainCanvas.setTextSize(0);
     mainCanvas.setCursor(5, LCD_HEIGHT - 12);
     mainCanvas.printf("FPS:%d", currentFramesPerSecond);
   }
