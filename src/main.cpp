@@ -210,14 +210,6 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 
   if (oilTemp >= MIN_TEMP) {
     int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
-    if (oilTemp >= ALERT_TEMP) {
-      // レッドゾーンに入ったらバーを全幅赤で表示する
-      barWidth = W;
-    } else {
-      // 通常時は温度に応じた幅で白色表示
-      barWidth = std::min(barWidth, W);
-    }
-
     // 16bit カラーで描画
     uint16_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
     canvas.fillRect(X, Y, barWidth, H, barColor);
