@@ -56,4 +56,20 @@ constexpr uint8_t  BACKLIGHT_NIGHT =  60;
 
 constexpr int MEDIAN_BUFFER_SIZE = 10;
 
+// ── センサリング設定 ──
+// サンプリングバッファサイズ
+constexpr int PRESSURE_SAMPLE_SIZE   = 5;
+constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
+constexpr int OIL_TEMP_SAMPLE_SIZE   = 10;
+
+// 取得間隔や平滑化係数
+constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS    = 300;   // 0.3 秒
+constexpr float    TEMP_DISPLAY_SMOOTHING_ALPHA = 0.1f;
+
+// ADC のセトリング待ち時間 [µs]
+constexpr uint32_t ADC_SETTLING_US = 50;
+
+// ALS の測定間隔 [ms]
+constexpr uint32_t ALS_MEASUREMENT_INTERVAL_MS = 8000; // 8 秒
+
 #endif // CONFIG_H
