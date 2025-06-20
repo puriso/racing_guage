@@ -106,9 +106,9 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
         canvas.setTextFont(1);
         canvas.setFont(&fonts::Font0);
-        // 90℃と100℃のラベルだけ少し大きく描画
+        // 90℃と100℃のラベルは更に読みやすくするために少し大きめに描画
         if (fabsf(scaledValue - 90.0f) < 0.1f || fabsf(scaledValue - 100.0f) < 0.1f)
-          canvas.setTextSize(2);
+          canvas.setTextSize(3);
         else
           canvas.setTextSize(1);
         canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
