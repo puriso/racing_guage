@@ -8,10 +8,12 @@
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,   // 目盛の間隔
+                      float tickStep,   // 目盛の間隔（細かい目盛り）
                       bool useDecimal,  // 小数点を表示するかどうか
                       int x, int y,
-                      bool drawStatic)
+                      bool drawStatic,
+                      float majorTickStep = -1.0f, // 数字を表示する目盛間隔（負なら旧仕様）
+                      float labelStart    = 0.0f)  // ラベル描画を開始する値
 {
   // 左端を 1px 固定しつつ数値表示位置は従来通りに保つ
   const int GAUGE_LEFT = x + 1;                    // 円メーターの左端
@@ -69,15 +71,32 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
       float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
       float rad = radians(angle);
 
-      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 10));
-      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 10));
-      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 5));
-      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 5));
+      // 主要目盛かどうかを判定（majorTickStep が負なら従来と同じ判定）
+      bool isMajorTick;
+      if (majorTickStep < 0)
+      {
+        isMajorTick = (fmod(scaledValue, 1.0f) == 0.0f);
+      }
+      else
+      {
+        float diff = fmod(scaledValue - labelStart, majorTickStep);
+        isMajorTick = (scaledValue >= labelStart) && (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
+      }
+
+      // 主要目盛は長めの線、細かい目盛は短めの線を描画
+      int innerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 10) : (RADIUS - ARC_WIDTH - 8);
+      int outerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 5)  : (RADIUS - ARC_WIDTH - 7);
+
+      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * innerRadius);
+      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * innerRadius);
+      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * outerRadius);
+      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * outerRadius);
 
       canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
 
-      // 整数値の目盛ラベルを描画
-      if (fmod(scaledValue, 1.0) == 0)
+      bool drawLabel = isMajorTick;
+
+      if (drawLabel)
       {
         int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
         int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
@@ -87,6 +106,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
         canvas.setTextFont(1);
         canvas.setFont(&fonts::Font0);
+        // 90℃と100℃のラベルだけ少し大きく描画
+        if (fabsf(scaledValue - 90.0f) < 0.1f || fabsf(scaledValue - 100.0f) < 0.1f)
+          canvas.setTextSize(2);
+        else
+          canvas.setTextSize(1);
         canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
         canvas.setCursor(labelX - (canvas.textWidth(labelText) / 2), labelY - 4);
         canvas.print(labelText);
