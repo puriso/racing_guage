@@ -41,6 +41,9 @@ float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE]       = {};
 int oilPressureSampleIndex      = 0;
 int waterTemperatureSampleIndex = 0;
 int oilTemperatureSampleIndex   = 0;
+// 初回平均化のためのフラグ
+bool waterTempInitialized = false;
+bool oilTempInitialized   = false;
 
 // 水温・油温サンプリング間隔[ms] (0.3 秒)
 constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
@@ -363,12 +366,22 @@ void acquireSensorData()
   if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
     if (SENSOR_WATER_TEMP_PRESENT) {
       int16_t raw = readAdcWithSettling(0);                // CH0: 水温
-      waterTemperatureSamples[waterTemperatureSampleIndex] =
-          convertVoltageToTemp(convertAdcToVoltage(raw));
+      float value = convertVoltageToTemp(convertAdcToVoltage(raw));
+      if (!waterTempInitialized) {
+        // 最初の値をバッファ全体にコピーして平均化の初期値とする
+        for (int i = 0; i < WATER_TEMP_SAMPLE_SIZE; ++i) {
+          waterTemperatureSamples[i] = value;
+        }
+        waterTempInitialized = true;
+        waterTemperatureSampleIndex = 1 % WATER_TEMP_SAMPLE_SIZE;
+      } else {
+        waterTemperatureSamples[waterTemperatureSampleIndex] = value;
+        waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
+      }
     } else {
       waterTemperatureSamples[waterTemperatureSampleIndex] = 0.0f;
+      waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
     }
-    waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
     previousWaterTempSampleTime = now;
   }
 
@@ -376,12 +389,21 @@ void acquireSensorData()
   if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
     if (SENSOR_OIL_TEMP_PRESENT) {
       int16_t raw = readAdcWithSettling(2);                // CH2: 油温
-      oilTemperatureSamples[oilTemperatureSampleIndex] =
-          convertVoltageToTemp(convertAdcToVoltage(raw));
+      float value = convertVoltageToTemp(convertAdcToVoltage(raw));
+      if (!oilTempInitialized) {
+        for (int i = 0; i < OIL_TEMP_SAMPLE_SIZE; ++i) {
+          oilTemperatureSamples[i] = value;
+        }
+        oilTempInitialized = true;
+        oilTemperatureSampleIndex = 1 % OIL_TEMP_SAMPLE_SIZE;
+      } else {
+        oilTemperatureSamples[oilTemperatureSampleIndex] = value;
+        oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
+      }
     } else {
       oilTemperatureSamples[oilTemperatureSampleIndex] = 0.0f;
+      oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
     }
-    oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
     previousOilTempSampleTime = now;
   }
 
