@@ -56,4 +56,9 @@ constexpr uint8_t  BACKLIGHT_NIGHT =  60;
 
 constexpr int MEDIAN_BUFFER_SIZE = 10;
 
+// サンプリング数設定
+constexpr int PRESSURE_SAMPLE_SIZE   = 5;
+constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
+constexpr int OIL_TEMP_SAMPLE_SIZE   = 10;
+
 #endif // CONFIG_H

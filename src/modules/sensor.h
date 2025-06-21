@@ -7,11 +7,6 @@
 
 extern Adafruit_ADS1015 adsConverter;
 
-// サンプリングサイズ
-constexpr int PRESSURE_SAMPLE_SIZE   = 5;
-constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
-constexpr int OIL_TEMP_SAMPLE_SIZE   = 10;
-
 extern float oilPressureSamples[PRESSURE_SAMPLE_SIZE];
 extern float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE];
 extern float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE];
