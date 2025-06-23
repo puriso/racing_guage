@@ -56,6 +56,11 @@ constexpr uint8_t  BACKLIGHT_NIGHT =  60;
 
 constexpr int MEDIAN_BUFFER_SIZE = 10;
 
+// ── ADS1015 のチャンネル定義 ──
+constexpr uint8_t ADC_CH_WATER_TEMP   = 0;
+constexpr uint8_t ADC_CH_OIL_PRESSURE = 1;
+constexpr uint8_t ADC_CH_OIL_TEMP     = 2;
+
 // サンプリング数設定
 constexpr int PRESSURE_SAMPLE_SIZE   = 5;
 constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
