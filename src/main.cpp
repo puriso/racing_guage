@@ -2,6 +2,7 @@
 
 #include <M5CoreS3.h>
 #include <Wire.h>
+#include <esp32-hal-cpu.h>
 
 #include "modules/display.h"
 #include "modules/sensor.h"
@@ -21,6 +22,8 @@ void setup()
     Serial.begin(115200);
 
     M5.begin();
+    // CPUクロック設定
+    setCpuFrequencyMhz(CPU_FREQ_MHZ);
     CoreS3.begin(M5.config());
     M5.Power.begin();
     CoreS3.Ltr553.begin(&ltr553InitParams);

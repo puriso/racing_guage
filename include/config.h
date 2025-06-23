@@ -6,6 +6,8 @@
 // ────────────────────── 設定 ──────────────────────
 // デバッグモードを有効にするかどうか
 constexpr bool DEBUG_MODE_ENABLED = false;
+// CPUクロック周波数設定 [MHz]
+constexpr int CPU_FREQ_MHZ = 240;
 
 // ── センサー接続可否（false にするとその項目は常に 0 表示） ──
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;

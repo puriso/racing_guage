@@ -23,6 +23,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
   - 本リポジトリでは **油圧**・**油温** を実装済み
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
 - 各種設定は `include/config.h` の定数で変更可能
+- `CPU_FREQ_MHZ` を調整して FPS を向上可能
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考                     |
@@ -33,6 +34,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 | 温度センサ1      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V        |
 | 温度センサ2      | **PDF00703S** (Defi)              | CH2 / 0.5 – 4.5 V        |
 | 電源             | 5V                               | CoreS3 USB経由           |
+| CPUクロック  | 240 MHz        | `include/config.h`で設定 |
 
 > 📌 詳しい配線図は後日追加予定です。
 
@@ -53,6 +55,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
   - In this repository, **oil pressure** and **oil temperature** are implemented.
 - Digital + bar graph temperature display
 - Most settings are in `include/config.h`
+- CPU clock adjustable via `CPU_FREQ_MHZ` to improve FPS
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |
@@ -63,6 +66,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 | Temp Sensor 1    | **PDF00703S** (Defi)           | CH1, 0.5–4.5V           |
 | Temp Sensor 2    | **PDF00703S** (Defi)           | CH2, 0.5–4.5V           |
 | Power Supply     | 5V                             | Powered via USB         |
+| CPU Clock        | 240 MHz                        | Configurable in `include/config.h` |
 
 > 📌 Detailed wiring diagrams will be added soon.
 
