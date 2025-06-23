@@ -15,6 +15,10 @@ static int oilPressureSampleIndex = 0;
 static int waterTemperatureSampleIndex = 0;
 static int oilTemperatureSampleIndex = 0;
 
+// 最初の水温・油温取得かどうかのフラグ
+static bool waterTempFirstSample = true;
+static bool oilTempFirstSample   = true;
+
 // セトリング用待ち時間 [us]
 constexpr uint32_t ADC_SETTLING_US = 50;
 
@@ -75,27 +79,41 @@ void acquireSensorData()
 
     // 水温
     if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+        float value = 0.0f;
         if (SENSOR_WATER_TEMP_PRESENT) {
             int16_t raw = readAdcWithSettling(ADC_CH_WATER_TEMP);  // CH0: 水温
-            waterTemperatureSamples[waterTemperatureSampleIndex] =
-                convertVoltageToTemp(convertAdcToVoltage(raw));
-        } else {
-            waterTemperatureSamples[waterTemperatureSampleIndex] = 0.0f;
+            value = convertVoltageToTemp(convertAdcToVoltage(raw));
         }
-        waterTemperatureSampleIndex = (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
+
+        if (waterTempFirstSample) {
+            for (float& v : waterTemperatureSamples) v = value;  // 初期値を全要素に設定
+            waterTemperatureSampleIndex = 1 % WATER_TEMP_SAMPLE_SIZE;
+            waterTempFirstSample = false;
+        } else {
+            waterTemperatureSamples[waterTemperatureSampleIndex] = value;
+            waterTemperatureSampleIndex =
+                (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
+        }
         previousWaterTempSampleTime = now;
     }
 
     // 油温
     if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+        float value = 0.0f;
         if (SENSOR_OIL_TEMP_PRESENT) {
             int16_t raw = readAdcWithSettling(ADC_CH_OIL_TEMP);  // CH2: 油温
-            oilTemperatureSamples[oilTemperatureSampleIndex] =
-                convertVoltageToTemp(convertAdcToVoltage(raw));
-        } else {
-            oilTemperatureSamples[oilTemperatureSampleIndex] = 0.0f;
+            value = convertVoltageToTemp(convertAdcToVoltage(raw));
         }
-        oilTemperatureSampleIndex = (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
+
+        if (oilTempFirstSample) {
+            for (float& v : oilTemperatureSamples) v = value;  // 初期値を全要素に設定
+            oilTemperatureSampleIndex = 1 % OIL_TEMP_SAMPLE_SIZE;
+            oilTempFirstSample = false;
+        } else {
+            oilTemperatureSamples[oilTemperatureSampleIndex] = value;
+            oilTemperatureSampleIndex =
+                (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
+        }
         previousOilTempSampleTime = now;
     }
 }
