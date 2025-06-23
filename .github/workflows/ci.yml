@@ -33,3 +33,5 @@ jobs:
         run: pip install platformio
       - name: Build
         run: pio run -e m5stack-cores3
+      - name: Run tests
+        run: pio test -e native
