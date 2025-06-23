@@ -75,3 +75,12 @@ Use in vehicles is at your own risk—always validate sensor readings before dri
 ---
 
 🚗 Built for performance, track use, and hobbyist tuning.
+
+## 開発の注意点 / Development Notes
+ブランチ名は英語のみを使用してください。ローカルでコミットする前に、以下の設定を行うと自動でチェックできます。
+
+```bash
+git config core.hooksPath githooks
+```
+
+`githooks/pre-commit` ではブランチ名に日本語など ASCII 以外の文字が含まれている場合、コミットを拒否します。
