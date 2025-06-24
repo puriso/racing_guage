@@ -60,4 +60,4 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
       - name: Run tests
-        run: pio test -e test_native -j 2
+        run: pio test -e test_native
