@@ -1,7 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#ifndef PIO_UNIT_TESTING
 #include <M5CoreS3.h>
+#endif
 
 // ────────────────────── 設定 ──────────────────────
 // デバッグモードを有効にするかどうか
