@@ -10,7 +10,8 @@ constexpr bool DEBUG_MODE_ENABLED = false;
 // ── センサー接続可否（false にするとその項目は常に 0 表示） ──
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
 constexpr bool SENSOR_WATER_TEMP_PRESENT    = true;
-constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
+// 油温センサーを使用するかどうか
+constexpr bool SENSOR_OIL_TEMP_PRESENT      = true;
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 // ── 色設定 (16 bit) ──
