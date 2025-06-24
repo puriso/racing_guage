@@ -65,5 +65,7 @@ constexpr uint8_t ADC_CH_OIL_TEMP     = 2;
 constexpr int PRESSURE_SAMPLE_SIZE   = 5;
 constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
 constexpr int OIL_TEMP_SAMPLE_SIZE   = 10;
+// 電流サンプリング数
+constexpr int CURRENT_SAMPLE_SIZE   = 10;
 
 #endif // CONFIG_H

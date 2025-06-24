@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <Wire.h>
+#include <M5CoreS3.h>
 
 // ────────────────────── グローバル変数 ──────────────────────
 Adafruit_ADS1015 adsConverter;
@@ -10,10 +11,12 @@ Adafruit_ADS1015 adsConverter;
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE] = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE] = {};
 float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE] = {};
+float boardCurrentSamples[CURRENT_SAMPLE_SIZE] = {};
 
 static int oilPressureSampleIndex = 0;
 static int waterTemperatureSampleIndex = 0;
 static int oilTemperatureSampleIndex = 0;
+static int currentSampleIndex = 0;
 
 // 最初の水温・油温取得かどうかのフラグ
 static bool waterTempFirstSample = true;
@@ -116,5 +119,16 @@ void acquireSensorData()
         }
         previousOilTempSampleTime = now;
     }
+
+    // M5Stack 使用電流取得
+    boardCurrentSamples[currentSampleIndex] = measureBoardCurrent();
+    currentSampleIndex = (currentSampleIndex + 1) % CURRENT_SAMPLE_SIZE;
+}
+
+// ────────────────────── 電流取得 ──────────────────────
+float measureBoardCurrent()
+{
+    // getBatteryCurrent は mA 単位を返す
+    return static_cast<float>(M5.Power.getBatteryCurrent());
 }
 

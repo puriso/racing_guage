@@ -117,11 +117,12 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
 
     if (DEBUG_MODE_ENABLED) {
-        mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
+        mainCanvas.fillRect(0, LCD_HEIGHT - 16, 120, 16, COLOR_BLACK);
         mainCanvas.setFont(&fonts::Font0);
         mainCanvas.setTextSize(0);
         mainCanvas.setCursor(5, LCD_HEIGHT - 12);
-        mainCanvas.printf("FPS:%d", currentFramesPerSecond);
+        int current = static_cast<int>(calculateAverage(boardCurrentSamples));
+        mainCanvas.printf("FPS:%d I:%dmA", currentFramesPerSecond, current);
     }
 
     mainCanvas.pushSprite(0, 0);

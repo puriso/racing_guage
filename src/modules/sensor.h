@@ -10,6 +10,9 @@ extern Adafruit_ADS1015 adsConverter;
 extern float oilPressureSamples[PRESSURE_SAMPLE_SIZE];
 extern float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE];
 extern float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE];
+extern float boardCurrentSamples[CURRENT_SAMPLE_SIZE];
+
+float measureBoardCurrent();
 
 float convertAdcToVoltage(int16_t rawAdc);
 float convertVoltageToOilPressure(float voltage);
