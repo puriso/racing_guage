@@ -128,7 +128,7 @@ void acquireSensorData()
 // ────────────────────── 電流取得 ──────────────────────
 float measureBoardCurrent()
 {
-    // getBatteryCurrent は mA 単位を返す
-    return static_cast<float>(M5.Power.getBatteryCurrent());
+    // USB 経由の電流を取得 (mA 単位)。バッテリーは使用しないため、VBUS 電流を参照
+    return static_cast<float>(M5.Power.Axp2101.getVBUSCurrent());
 }
 

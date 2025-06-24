@@ -122,6 +122,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         mainCanvas.setTextSize(0);
         mainCanvas.setCursor(5, LCD_HEIGHT - 12);
         int current = static_cast<int>(calculateAverage(boardCurrentSamples));
+        // VBUS 電流表示
         mainCanvas.printf("FPS:%d I:%dmA", currentFramesPerSecond, current);
     }
 
