@@ -46,10 +46,18 @@ float convertVoltageToOilPressure(float voltage)
 
 float convertVoltageToTemp(float voltage)
 {
-    if (voltage <= 0.0f) return 200.0f;
-    float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
+    // 電源電圧より高い/等しい電圧は異常値として捨てる
+    if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
+
+    // ---- ここを修正 ----
+    // 旧:  R = Rref * (Vcc / V - 1)
+    float resistance = SERIES_REFERENCE_RES * (voltage / (SUPPLY_VOLTAGE - voltage));
+
+    // Steinhart–Hart の簡易形 (β式)
     float kelvin = THERMISTOR_B_CONSTANT /
-                   (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
+                   (log(resistance / THERMISTOR_R25) +
+                    THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
+
     return std::isnan(kelvin) ? 200.0f : kelvin - 273.16f;
 }
 
@@ -118,4 +126,3 @@ void acquireSensorData()
         previousOilTempSampleTime = now;
     }
 }
-
