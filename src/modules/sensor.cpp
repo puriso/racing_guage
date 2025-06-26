@@ -46,11 +46,19 @@ float convertVoltageToOilPressure(float voltage)
 
 float convertVoltageToTemp(float voltage)
 {
+    // 0V 以下は異常値として 200℃ を返す
     if (voltage <= 0.0f) return 200.0f;
-    float resistance = SERIES_REFERENCE_RES * ((SUPPLY_VOLTAGE / voltage) - 1.0f);
-    float kelvin = THERMISTOR_B_CONSTANT /
-                   (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
-    return std::isnan(kelvin) ? 200.0f : kelvin - 273.16f;
+
+    // Defi PDF00703S は 0.5V で -40℃、4.5V で 150℃ を出力する
+    constexpr float V_MIN    = 0.5f;
+    constexpr float V_MAX    = 4.5f;
+    constexpr float TEMP_MIN = -40.0f;
+    constexpr float TEMP_MAX = 150.0f;
+
+    float temp = TEMP_MIN + (voltage - V_MIN) * (TEMP_MAX - TEMP_MIN) / (V_MAX - V_MIN);
+
+    // 温度範囲外はクランプ
+    return std::clamp(temp, TEMP_MIN, TEMP_MAX);
 }
 
 // ────────────────────── ADC 読み取り ──────────────────────
