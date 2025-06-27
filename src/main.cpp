@@ -23,6 +23,8 @@ void setup()
     M5.begin();
     CoreS3.begin(M5.config());
     M5.Power.begin();
+    // 外部からの給電を利用する場合は 5V ピン出力を無効化
+    M5.Power.setExtOutput(false);
     CoreS3.Ltr553.begin(&ltr553InitParams);
     M5.Power.begin();
 
