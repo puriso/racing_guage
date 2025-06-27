@@ -23,6 +23,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
   - 本リポジトリでは **油圧**・**油温** を実装済み
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
 - 各種設定は `include/config.h` の定数で変更可能
+- 水温・油温は500ms間隔で取得し、10サンプル平均を5秒ごとに更新
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考                     |
@@ -53,6 +54,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
   - In this repository, **oil pressure** and **oil temperature** are implemented.
 - Digital + bar graph temperature display
 - Most settings are in `include/config.h`
+- Water and oil temperatures are sampled every 500 ms and averaged over 10 samples (updated every 5 seconds)
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |

@@ -25,6 +25,7 @@ void setup()
     M5.Power.begin();
     CoreS3.Ltr553.begin(&ltr553InitParams);
     M5.Power.begin();
+    M5.Power.setExtOutput(false);
 
     display.init();
     display.setRotation(3);

@@ -24,8 +24,43 @@ static bool oilTempFirstSample   = true;
 constexpr uint32_t ADC_SETTLING_US = 50;
 
 // 水温・油温サンプリング間隔 [ms]
-constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 300;
+// 500msごとに取得し、10サンプルで約5秒平均となる
+constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 500;
 
+// ────────────────────── 変換定数 ──────────────────────
+constexpr float SUPPLY_VOLTAGE          = 5.0f;
+constexpr float THERMISTOR_R25          = 10000.0f;
+constexpr float THERMISTOR_B_CONSTANT   = 3380.0f;
+constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;       // 273.16 + 25
+constexpr float SERIES_REFERENCE_RES    = 10000.0f;
+
+// ────────────────────── ユーティリティ ──────────────────────
+float convertAdcToVoltage(int16_t rawAdc)
+{
+    return (rawAdc * 6.144f) / 2047.0f;
+}
+
+float convertVoltageToOilPressure(float voltage)
+{
+    return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;
+}
+
+float convertVoltageToTemp(float voltage)
+{
+    // 電源電圧より高い/等しい電圧は異常値として捨てる
+    if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
+
+    // ---- ここを修正 ----
+    // 旧:  R = Rref * (Vcc / V - 1)
+    float resistance = SERIES_REFERENCE_RES * (voltage / (SUPPLY_VOLTAGE - voltage));
+
+    // Steinhart–Hart の簡易形 (β式)
+    float kelvin = THERMISTOR_B_CONSTANT /
+                   (log(resistance / THERMISTOR_R25) +
+                    THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
+
+    return std::isnan(kelvin) ? 200.0f : kelvin - 273.16f;
+}
 
 // ────────────────────── ADC 読み取り ──────────────────────
 int16_t readAdcWithSettling(uint8_t ch)
@@ -92,4 +127,3 @@ void acquireSensorData()
         previousOilTempSampleTime = now;
     }
 }
-

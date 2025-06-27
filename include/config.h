@@ -10,7 +10,8 @@ constexpr bool DEBUG_MODE_ENABLED = false;
 // ── センサー接続可否（false にするとその項目は常に 0 表示） ──
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
 constexpr bool SENSOR_WATER_TEMP_PRESENT    = true;
-constexpr bool SENSOR_OIL_TEMP_PRESENT      = false;
+// 油温センサーを使用するかどうか
+constexpr bool SENSOR_OIL_TEMP_PRESENT      = true;
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
 
 // ── 色設定 (16 bit) ──
@@ -63,7 +64,7 @@ constexpr uint8_t ADC_CH_OIL_TEMP     = 2;
 
 // サンプリング数設定
 constexpr int PRESSURE_SAMPLE_SIZE   = 5;
-constexpr int WATER_TEMP_SAMPLE_SIZE = 10;
-constexpr int OIL_TEMP_SAMPLE_SIZE   = 10;
+constexpr int WATER_TEMP_SAMPLE_SIZE = 2;  // 500ms間隔×10サンプルで約5秒平均
+constexpr int OIL_TEMP_SAMPLE_SIZE   = 2;  // 500ms間隔×10サンプルで約5秒平均
 
 #endif // CONFIG_H
