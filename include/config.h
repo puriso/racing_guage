@@ -4,15 +4,19 @@
 #include <M5CoreS3.h>
 
 // ────────────────────── 設定 ──────────────────────
-// デバッグモードを有効にするかどうか
-constexpr bool DEBUG_MODE_ENABLED = false;
-
-// ── センサー接続可否（false にするとその項目は常に 0 表示） ──
-constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
-constexpr bool SENSOR_WATER_TEMP_PRESENT    = true;
-// 油温センサーを使用するかどうか
-constexpr bool SENSOR_OIL_TEMP_PRESENT      = true;
+// 既定値
+constexpr bool DEFAULT_DEBUG_MODE_ENABLED            = false;
+constexpr bool DEFAULT_SENSOR_OIL_PRESSURE_ENABLED   = true;
+constexpr bool DEFAULT_SENSOR_WATER_TEMP_ENABLED     = true;
+constexpr bool DEFAULT_SENSOR_OIL_TEMP_ENABLED       = true;
+// 環境光センサーの有無（固定値）
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
+
+// 実際の設定値（起動時にSDカードから読み込み）
+extern bool debugModeEnabled;
+extern bool oilPressureEnabled;
+extern bool waterTempEnabled;
+extern bool oilTempEnabled;
 
 // ── 色設定 (16 bit) ──
 // RGB888 から 565 形式へ変換する constexpr 関数

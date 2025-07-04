@@ -21,9 +21,10 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ### 主な機能
 - 油圧・燃圧・ブースト (0–9.9 bar) 半円アナログメーター
   - 本リポジトリでは **油圧**・**油温** を実装済み
-- 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
+- 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示
 - 各種設定は `include/config.h` の定数で変更可能
 - 水温・油温は500ms間隔で取得し、10サンプル平均を5秒ごとに更新
+- タッチメニューで各センサーとデバッグモードのON/OFFを切り替え、SDカードに保存
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考                     |
@@ -58,6 +59,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 - Digital + bar graph temperature display
 - Most settings are in `include/config.h`
 - Water and oil temperatures are sampled every 500 ms and averaged over 10 samples (updated every 5 seconds)
+- Touch menu lets you toggle sensors and debug mode, saving settings to SD card
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |

@@ -6,6 +6,8 @@
 #include "modules/display.h"
 #include "modules/sensor.h"
 #include "modules/backlight.h"
+#include "modules/settings.h"
+#include "modules/menu.h"
 
 // ── LTR553 初期設定 ──
 Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
@@ -54,6 +56,8 @@ void setup()
     }
     adsConverter.setDataRate(RATE_ADS1015_1600SPS);
 
+    loadSettings();
+
     if (SENSOR_AMBIENT_LIGHT_PRESENT) {
         CoreS3.Ltr553.begin(&ltr553InitParams);
         CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
@@ -75,11 +79,12 @@ void loop()
 
     acquireSensorData();
     updateGauges();
+    handleMenu();
 
     frameCounterPerSecond++;
     if (now - previousFpsTimestamp >= 1000UL) {
         currentFramesPerSecond = frameCounterPerSecond;
-        if (DEBUG_MODE_ENABLED)
+        if (debugModeEnabled)
             Serial.printf("FPS:%d\n", currentFramesPerSecond);
         frameCounterPerSecond = 0;
         previousFpsTimestamp  = now;

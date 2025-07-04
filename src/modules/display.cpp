@@ -1,5 +1,6 @@
 #include "display.h"
 #include "DrawFillArcMeter.h"
+#include "settings.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -116,7 +117,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         displayCache.waterTempAvg = waterTempAvg;
     }
 
-    if (DEBUG_MODE_ENABLED) {
+    if (debugModeEnabled) {
         mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
         mainCanvas.setFont(&fonts::Font0);
         mainCanvas.setTextSize(0);
@@ -145,7 +146,7 @@ void updateGauges()
     smoothOilTemp   += 0.1f * (targetOilTemp   - smoothOilTemp);
 
     float oilTempValue = smoothOilTemp;
-    if (!SENSOR_OIL_TEMP_PRESENT) oilTempValue = 0.0f;
+    if (!oilTempEnabled) oilTempValue = 0.0f;
 
     recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
     recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
