@@ -29,4 +29,17 @@ inline float calculateAverage(const float (&values)[N])
     return sum / static_cast<float>(N);
 }
 
+// サンプル間の差から値の乱れを検出
+template <size_t N>
+inline bool isErratic(const float (&values)[N], float threshold)
+{
+    float minV = values[0];
+    float maxV = values[0];
+    for (size_t i = 1; i < N; ++i) {
+        if (values[i] < minV) minV = values[i];
+        if (values[i] > maxV) maxV = values[i];
+    }
+    return (maxV - minV) > threshold;
+}
+
 #endif // SENSOR_H

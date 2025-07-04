@@ -37,6 +37,13 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 
     canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
+    // 異常値の場合は Err 表示のみ
+    if (std::isnan(oilTemp)) {
+        canvas.setFont(&FreeSansBold24pt7b);
+        canvas.drawRightString("Err", LCD_WIDTH - 1, 2);
+        return;
+    }
+
     if (oilTemp >= MIN_TEMP) {
         int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
         uint32_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
@@ -72,12 +79,12 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     const int TOPBAR_Y = 0, TOPBAR_H = 50;
     const int GAUGE_H  = 170;
 
-    bool oilChanged = std::isnan(displayCache.oilTemp) ||
+    bool oilChanged = std::isnan(displayCache.oilTemp) || std::isnan(oilTemp) ||
                       fabs(oilTemp - displayCache.oilTemp) > 0.01f ||
                       (maxOilTemp != displayCache.maxOilTemp);
-    bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
+    bool pressureChanged = std::isnan(displayCache.pressureAvg) || std::isnan(pressureAvg) ||
                            fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
-    bool waterChanged    = std::isnan(displayCache.waterTempAvg) ||
+    bool waterChanged    = std::isnan(displayCache.waterTempAvg) || std::isnan(waterTempAvg) ||
                            fabs(waterTempAvg - displayCache.waterTempAvg) > 0.01f;
 
     mainCanvas.setTextColor(COLOR_WHITE);
@@ -135,8 +142,13 @@ void updateGauges()
 
     float pressureAvg     = calculateAverage(oilPressureSamples);
     pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
+    bool pressureErr      = isErratic(oilPressureSamples, PRESSURE_ERR_THRESHOLD);
+
     float targetWaterTemp = calculateAverage(waterTemperatureSamples);
+    bool waterErr         = isErratic(waterTemperatureSamples, TEMP_ERR_THRESHOLD);
+
     float targetOilTemp   = calculateAverage(oilTemperatureSamples);
+    bool oilErr           = isErratic(oilTemperatureSamples, TEMP_ERR_THRESHOLD);
 
     if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
     if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
@@ -145,11 +157,18 @@ void updateGauges()
     smoothOilTemp   += 0.1f * (targetOilTemp   - smoothOilTemp);
 
     float oilTempValue = smoothOilTemp;
+    if (oilErr) oilTempValue = std::numeric_limits<float>::quiet_NaN();
+    if (pressureErr) pressureAvg = std::numeric_limits<float>::quiet_NaN();
+    if (waterErr) smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
+
     if (!SENSOR_OIL_TEMP_PRESENT) oilTempValue = 0.0f;
 
-    recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
-    recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
-    recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
+    if (!pressureErr)
+        recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
+    if (!waterErr)
+        recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
+    if (!oilErr)
+        recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
 
     renderDisplayAndLog(pressureAvg, smoothWaterTemp,
                         oilTempValue, recordedMaxOilTempTop);

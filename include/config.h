@@ -67,4 +67,9 @@ constexpr int PRESSURE_SAMPLE_SIZE   = 5;
 constexpr int WATER_TEMP_SAMPLE_SIZE = 2;  // 500ms間隔×10サンプルで約5秒平均
 constexpr int OIL_TEMP_SAMPLE_SIZE   = 2;  // 500ms間隔×10サンプルで約5秒平均
 
+// ── 異常判定用閾値 ──
+// サンプル間の差がこの値を超えると接続不良とみなす
+constexpr float PRESSURE_ERR_THRESHOLD = 2.0f;  // 油圧用 [bar]
+constexpr float TEMP_ERR_THRESHOLD     = 20.0f; // 温度用 [℃]
+
 #endif // CONFIG_H

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
@@ -29,14 +30,20 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
+  // 値が NaN なら表示のみ "Err" とする
+  bool invalid = std::isnan(value);
+
   // 値を範囲内に収める
   float clampedValue = value;
-  if (clampedValue < minValue)
-    clampedValue = minValue;
-  else if (clampedValue > maxValue)
-    clampedValue = maxValue;
-  // 最大値を更新（範囲外の場合でも最大角度で保持）
-  maxRecordedValue = std::max(clampedValue, maxRecordedValue);
+  if (!invalid) {
+    if (clampedValue < minValue)
+      clampedValue = minValue;
+    else if (clampedValue > maxValue)
+      clampedValue = maxValue;
+
+    // 最大値を更新（範囲外の場合でも最大角度で保持）
+    maxRecordedValue = std::max(clampedValue, maxRecordedValue);
+  }
 
   // メーター全体を塗りつぶし（非アクティブ部分）
   canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
@@ -53,8 +60,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   // 現在の値に対応する部分を塗りつぶし
-  // クランプ後の値でバーを描画
-  if (clampedValue >= minValue)
+  // 異常時はバーを描かない
+  if (!invalid && clampedValue >= minValue)
   {
     uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
     float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
@@ -124,7 +131,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 値を右下に表示
   char valueText[10];
-  if (useDecimal)
+  if (invalid)
+  {
+    strncpy(valueText, "Err", sizeof(valueText));
+    valueText[sizeof(valueText) - 1] = '\0';
+  }
+  else if (useDecimal)
   {
     snprintf(valueText, sizeof(valueText), "%.1f", value);
   }
