@@ -59,8 +59,8 @@ constexpr int MEDIAN_BUFFER_SIZE = 10;
 
 // ── ADS1015 のチャンネル定義 ──
 constexpr uint8_t ADC_CH_WATER_TEMP   = 0;
-constexpr uint8_t ADC_CH_OIL_PRESSURE = 1;
-constexpr uint8_t ADC_CH_OIL_TEMP     = 2;
+constexpr uint8_t ADC_CH_OIL_PRESSURE = 2;
+constexpr uint8_t ADC_CH_OIL_TEMP     = 1;
 
 // サンプリング数設定
 constexpr int PRESSURE_SAMPLE_SIZE   = 5;
