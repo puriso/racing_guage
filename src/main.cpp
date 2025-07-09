@@ -124,7 +124,7 @@ void openSettingsMenu()
             delay(10);
             continue;
         }
-        auto p = M5.Touch.getPressPoint();
+        auto p = M5.Touch.getTouchPointRaw();
         if (p.y < 50) {
             settings.showOilPressure = !settings.showOilPressure;
         } else if (p.y < 90) {
