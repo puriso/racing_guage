@@ -71,3 +71,4 @@ __pycache__/
 *.tmp
 *.bak
 *.swp
+test/test_sensor
