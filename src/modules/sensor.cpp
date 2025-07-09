@@ -49,8 +49,8 @@ float convertVoltageToTemp(float voltage)
     // 電源電圧より高い/等しい電圧は異常値として捨てる
     if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
 
-    // ---- ここを修正 ----
-    // 旧:  R = Rref * (Vcc / V - 1)
+    // 分圧式よりサーミスタ抵抗値を算出
+    // R = Rref * (V / (Vcc - V))  (サーミスタがGND側の場合)
     float resistance = SERIES_REFERENCE_RES * (voltage / (SUPPLY_VOLTAGE - voltage));
 
     // Steinhart–Hart の簡易形 (β式)
