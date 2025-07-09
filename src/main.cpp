@@ -30,12 +30,18 @@ void setup()
     M5.Power.setExtOutput(false);
 
     display.init();
+    // DMA を初期化
+    display.initDMA();
     display.setRotation(3);
     display.setColorDepth(16);
     display.setBrightness(BACKLIGHT_DAY);
 
     mainCanvas.setColorDepth(16);
     mainCanvas.setTextSize(1);
+    // スプライトを PSRAM ではなく DMA メモリに確保
+    mainCanvas.setPsram(false);
+    // スプライト用の DMA を初期化
+    mainCanvas.initDMA();
     mainCanvas.createSprite(LCD_WIDTH, LCD_HEIGHT);
 
     M5.Lcd.clear();
