@@ -6,6 +6,7 @@
 #include "modules/display.h"
 #include "modules/sensor.h"
 #include "modules/backlight.h"
+#include "menu/menu.h"
 
 // ── LTR553 初期設定 ──
 Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
@@ -47,6 +48,9 @@ void setup()
     M5.Lcd.clear();
     M5.Lcd.fillScreen(COLOR_BLACK);
 
+    // SD カードから設定を読み込み
+    loadConfig();
+
     M5.Speaker.begin();
     M5.Imu.begin();
     btStop();
@@ -74,6 +78,11 @@ void loop()
     static unsigned long previousAlsSampleTime = 0;
     unsigned long now = millis();
 
+    M5.update();
+    if (M5.Touch.wasPressed()) {
+        showMenu();
+    }
+
     if (now - previousAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
         updateBacklightLevel();
         previousAlsSampleTime = now;
@@ -85,7 +94,7 @@ void loop()
     frameCounterPerSecond++;
     if (now - previousFpsTimestamp >= 1000UL) {
         currentFramesPerSecond = frameCounterPerSecond;
-        if (DEBUG_MODE_ENABLED)
+        if (appConfig.debugMode)
             Serial.printf("FPS:%d\n", currentFramesPerSecond);
         frameCounterPerSecond = 0;
         previousFpsTimestamp  = now;

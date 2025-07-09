@@ -1,5 +1,6 @@
 #include "display.h"
 #include "DrawFillArcMeter.h"
+#include "../menu/menu.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -82,15 +83,17 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 
     mainCanvas.setTextColor(COLOR_WHITE);
 
-    if (oilChanged) {
+    if (oilChanged && appConfig.showOilTemp) {
         mainCanvas.fillRect(0, TOPBAR_Y, LCD_WIDTH, TOPBAR_H, COLOR_BLACK);
         if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
         drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
         displayCache.oilTemp    = oilTemp;
         displayCache.maxOilTemp = maxOilTemp;
+    } else if (!appConfig.showOilTemp) {
+        mainCanvas.fillRect(0, TOPBAR_Y, LCD_WIDTH, TOPBAR_H, COLOR_BLACK);
     }
 
-    if (pressureChanged || !pressureGaugeInitialized) {
+    if ((pressureChanged || !pressureGaugeInitialized) && appConfig.showOilPressure) {
         if (!pressureGaugeInitialized) {
             mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
         }
@@ -101,9 +104,12 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          !pressureGaugeInitialized);
         pressureGaugeInitialized = true;
         displayCache.pressureAvg = pressureAvg;
+    } else if (!appConfig.showOilPressure && pressureGaugeInitialized) {
+        mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
+        pressureGaugeInitialized = false;
     }
 
-    if (waterChanged || !waterGaugeInitialized) {
+    if ((waterChanged || !waterGaugeInitialized) && appConfig.showWaterTemp) {
         if (!waterGaugeInitialized) {
             mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
         }
@@ -114,9 +120,12 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          5.0f, WATER_TEMP_METER_MIN);
         waterGaugeInitialized = true;
         displayCache.waterTempAvg = waterTempAvg;
+    } else if (!appConfig.showWaterTemp && waterGaugeInitialized) {
+        mainCanvas.fillRect(160, 60, 160, GAUGE_H, COLOR_BLACK);
+        waterGaugeInitialized = false;
     }
 
-    if (DEBUG_MODE_ENABLED) {
+    if (appConfig.debugMode) {
         mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
         mainCanvas.setFont(&fonts::Font0);
         mainCanvas.setTextSize(0);
