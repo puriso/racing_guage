@@ -79,6 +79,16 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 ### License
 This project is licensed under the **MIT License**.  
 Use in vehicles is at your own risk—always validate sensor readings before driving.
+### テスト実行方法
+このプロジェクトには各センサー値を検証する簡易テストが含まれています。
+`./test/run_tests.sh` を実行するとテストを開始できます。
+
+### Running Tests
+Unit tests for sensor value conversions can be executed with:
+```
+./test/run_tests.sh
+```
+
 
 ---
 
