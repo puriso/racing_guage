@@ -33,7 +33,10 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 | 圧力センサ       | **PDF00903S** (Defi)              | CH0 / 0.5 – 4.5 V        |
 | 温度センサ1      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V        |
 | 温度センサ2      | **PDF00703S** (Defi)              | CH2 / 0.5 – 4.5 V        |
-| 電源             | 5V                               | CoreS3 USB経由           |
+| 電源             | 5V                               | CoreS3 USB経由 または 5Vピン           |
+
+> 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
+> 5Vピンから給電する場合は `M5.Power.setExtOutput(false)` として出力を無効にします。
 
 > 📌 詳しい配線図は後日追加予定です。
 
@@ -64,7 +67,10 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 | Pressure Sensor  | **PDF00903S** (Defi)           | CH0, 0.5–4.5V           |
 | Temp Sensor 1    | **PDF00703S** (Defi)           | CH1, 0.5–4.5V           |
 | Temp Sensor 2    | **PDF00703S** (Defi)           | CH2, 0.5–4.5V           |
-| Power Supply     | 5V                             | Powered via USB         |
+| Power Supply     | 5V                             | Powered via USB or 5V pin         |
+
+> 💡 The 5V pin can power the CoreS3 or supply external devices. When `M5.Power.setExtOutput(true)` is active, avoid feeding power from another 5V source at the same time.
+> To run from the 5V pin, keep `M5.Power.setExtOutput(false)` so the pin won't output power.
 
 > 📌 Detailed wiring diagrams will be added soon.
 
