@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "../modules/display.h"
 
 // グローバル設定変数
 AppConfig appConfig = {true, true, true, DEBUG_MODE_ENABLED};
@@ -69,8 +70,9 @@ void showMenu()
     drawMenu();
     while (true) {
         M5.update();
-        if (M5.Touch.isPressed()) {
-            auto t = M5.Touch.getPressPoint();
+        auto detail = M5.Touch.getDetail();
+        if (detail.wasPressed()) {
+            auto t = detail;
             if (t.y < 40) {
                 appConfig.showOilPressure = !appConfig.showOilPressure;
                 drawMenu();
@@ -87,7 +89,7 @@ void showMenu()
                 saveConfig();
                 break;
             }
-            while (M5.Touch.isPressed()) M5.update();
+            while (M5.Touch.getDetail().isPressed()) M5.update();
         }
     }
     display.fillScreen(COLOR_BLACK);

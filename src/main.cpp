@@ -79,7 +79,7 @@ void loop()
     unsigned long now = millis();
 
     M5.update();
-    if (M5.Touch.wasPressed()) {
+    if (M5.Touch.getDetail().wasPressed()) {
         showMenu();
     }
 
