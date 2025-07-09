@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <cstdio>
 
 // ────────────────────── グローバル変数 ──────────────────────
 M5GFX display;
@@ -60,7 +61,9 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
     canvas.setCursor(X, Y + H + 4);
     canvas.printf("OIL.T / Celsius,  MAX:%03d", maxOilTemp);
     char tempStr[6];
-    sprintf(tempStr, "%d", static_cast<int>(oilTemp));
+    // snprintf でバッファサイズを指定し、
+    // 安全に文字列化する
+    snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
     canvas.setFont(&FreeSansBold24pt7b);
     canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
 }
