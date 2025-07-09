@@ -19,12 +19,12 @@ static int oilTemperatureSampleIndex = 0;
 static bool waterTempFirstSample = true;
 static bool oilTempFirstSample   = true;
 
-// セトリング用待ち時間 [us]
-constexpr uint32_t ADC_SETTLING_US = 50;
+// ADC セトリング待ち時間 [us]
+constexpr uint16_t ADC_SETTLING_US = 50;
 
-// 水温・油温サンプリング間隔 [ms]
+// 温度サンプリング間隔 [ms]
 // 500msごとに取得し、10サンプルで約5秒平均となる
-constexpr uint32_t TEMP_SAMPLE_INTERVAL_MS = 500;
+constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
 
 // ────────────────────── 変換定数 ──────────────────────
 constexpr float SUPPLY_VOLTAGE          = 5.0f;

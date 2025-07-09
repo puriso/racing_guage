@@ -48,8 +48,9 @@ constexpr int LCD_HEIGHT = 240;
 // ── ALS/輝度自動制御 ──
 enum class BrightnessMode { Day, Dusk, Night };
 
-constexpr uint32_t LUX_THRESHOLD_DAY  = 15;
-constexpr uint32_t LUX_THRESHOLD_DUSK = 10;
+// ALS の輝度判定閾値
+constexpr uint8_t LUX_THRESHOLD_DAY  = 15;
+constexpr uint8_t LUX_THRESHOLD_DUSK = 10;
 
 constexpr uint8_t  BACKLIGHT_DAY   = 255;
 constexpr uint8_t  BACKLIGHT_DUSK  = 200;
