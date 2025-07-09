@@ -1,4 +1,5 @@
 #include "sensor.h"
+#include "settings.h"
 #include <algorithm>
 #include <cmath>
 #include <numeric>
@@ -77,7 +78,7 @@ void acquireSensorData()
     unsigned long now = millis();
 
     // 油圧
-    if (SENSOR_OIL_PRESSURE_PRESENT) {
+    if (settings.showOilPressure) {
         int16_t raw = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
         oilPressureSamples[oilPressureSampleIndex] =
             convertVoltageToOilPressure(convertAdcToVoltage(raw));
@@ -89,7 +90,7 @@ void acquireSensorData()
     // 水温
     if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
         float value = 0.0f;
-        if (SENSOR_WATER_TEMP_PRESENT) {
+        if (settings.showWaterTemp) {
             int16_t raw = readAdcWithSettling(ADC_CH_WATER_TEMP);  // CH0: 水温
             value = convertVoltageToTemp(convertAdcToVoltage(raw));
         }
@@ -109,7 +110,7 @@ void acquireSensorData()
     // 油温
     if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
         float value = 0.0f;
-        if (SENSOR_OIL_TEMP_PRESENT) {
+        if (settings.showOilTemp) {
             int16_t raw = readAdcWithSettling(ADC_CH_OIL_TEMP);  // CH2: 油温
             value = convertVoltageToTemp(convertAdcToVoltage(raw));
         }

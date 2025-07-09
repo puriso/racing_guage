@@ -6,6 +6,7 @@
 #include "modules/display.h"
 #include "modules/sensor.h"
 #include "modules/backlight.h"
+#include "settings.h"
 
 // ── LTR553 初期設定 ──
 Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
@@ -14,6 +15,8 @@ Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 unsigned long previousFpsTimestamp   = 0;
 int           frameCounterPerSecond  = 0;
 int           currentFramesPerSecond = 0;
+
+void openSettingsMenu();
 
 // ────────────────────── setup() ──────────────────────
 void setup()
@@ -43,6 +46,7 @@ void setup()
 
     M5.Speaker.begin();
     M5.Imu.begin();
+    loadSettings();
     btStop();
 
     pinMode(9, INPUT_PULLUP);
@@ -73,15 +77,71 @@ void loop()
         previousAlsSampleTime = now;
     }
 
+    if (M5.Touch.getCount() > 0) {
+        openSettingsMenu();
+    }
+
     acquireSensorData();
     updateGauges();
 
     frameCounterPerSecond++;
     if (now - previousFpsTimestamp >= 1000UL) {
         currentFramesPerSecond = frameCounterPerSecond;
-        if (DEBUG_MODE_ENABLED)
+        if (settings.debugMode)
             Serial.printf("FPS:%d\n", currentFramesPerSecond);
         frameCounterPerSecond = 0;
         previousFpsTimestamp  = now;
     }
+}
+
+// ────────────────────── 設定メニュー ──────────────────────
+void openSettingsMenu()
+{
+    display.fillScreen(COLOR_BLACK);
+    display.setFont(&fonts::Font0);
+    display.setTextSize(2);
+
+    auto drawItems = []() {
+        display.setCursor(20, 30);
+        display.printf("Oil.P %s", settings.showOilPressure ? "ON" : "OFF");
+        display.setCursor(20, 70);
+        display.printf("Water.T %s", settings.showWaterTemp ? "ON" : "OFF");
+        display.setCursor(20, 110);
+        display.printf("Oil.T %s", settings.showOilTemp ? "ON" : "OFF");
+        display.setCursor(20, 150);
+        display.printf("DEBUG %s", settings.debugMode ? "ON" : "OFF");
+        display.setCursor(20, 200);
+        display.print("SAVE");
+        display.setCursor(140, 200);
+        display.print("CANCEL");
+    };
+
+    drawItems();
+
+    while (true) {
+        M5.update();
+        if (M5.Touch.getCount() == 0) {
+            delay(10);
+            continue;
+        }
+        auto p = M5.Touch.getPressPoint();
+        if (p.y < 50) {
+            settings.showOilPressure = !settings.showOilPressure;
+        } else if (p.y < 90) {
+            settings.showWaterTemp = !settings.showWaterTemp;
+        } else if (p.y < 130) {
+            settings.showOilTemp = !settings.showOilTemp;
+        } else if (p.y < 170) {
+            settings.debugMode = !settings.debugMode;
+        } else if (p.y < 230 && p.x < 100) {
+            saveSettings();
+            break;
+        } else if (p.y < 230 && p.x >= 100) {
+            break;
+        }
+        drawItems();
+        delay(200);
+    }
+
+    display.fillScreen(COLOR_BLACK);
 }
