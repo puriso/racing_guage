@@ -7,6 +7,14 @@
 #include <cmath>
 #include <limits>
 
+// std::clamp が利用できない環境向けの簡易版
+template <typename T>
+static inline T clampValue(T val, T low, T high) {
+  if (val < low) return low;
+  if (val > high) return high;
+  return val;
+}
+
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
                       float &previousValue, // 前回描画した値
@@ -60,7 +68,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   // 前回値との比較で変更部分のみ更新
-  float prevValue = std::isnan(previousValue) ? minValue : std::clamp(previousValue, minValue, maxValue);
+  float prevValue = std::isnan(previousValue) ? minValue : clampValue(previousValue, minValue, maxValue);
   float prevAngle = -270 + ((prevValue - minValue) / (maxValue - minValue) * 270.0);
   float currAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
   float thresholdAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
