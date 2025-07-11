@@ -69,6 +69,29 @@ int16_t readAdcWithSettling(uint8_t ch)
     return adsConverter.readADC_SingleEnded(ch);
 }
 
+// ────────────────────── 温度読み取り ──────────────────────
+// 指定チャンネルから温度を取得して摂氏に変換
+static float readTemperatureChannel(uint8_t ch)
+{
+    int16_t raw = readAdcWithSettling(ch);
+    return convertVoltageToTemp(convertAdcToVoltage(raw));
+}
+
+// ────────────────────── サンプルバッファ更新 ──────────────────────
+// 初回は全要素を同じ値で埋め、その後はリングバッファ更新
+template <size_t N>
+static void updateSampleBuffer(float value, float (&buffer)[N], int &index, bool &first)
+{
+    if (first) {
+        for (float &v : buffer) v = value;
+        index = 1 % N;  // 初期化後は 1 番目から開始
+        first = false;
+    } else {
+        buffer[index] = value;
+        index = (index + 1) % N;
+    }
+}
+
 // ────────────────────── センサ取得 ──────────────────────
 void acquireSensorData()
 {
@@ -88,41 +111,21 @@ void acquireSensorData()
 
     // 水温
     if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
-        float value = 0.0f;
-        if (SENSOR_WATER_TEMP_PRESENT) {
-            int16_t raw = readAdcWithSettling(ADC_CH_WATER_TEMP);  // CH0: 水温
-            value = convertVoltageToTemp(convertAdcToVoltage(raw));
-        }
-
-        if (waterTempFirstSample) {
-            for (float& v : waterTemperatureSamples) v = value;  // 初期値を全要素に設定
-            waterTemperatureSampleIndex = 1 % WATER_TEMP_SAMPLE_SIZE;
-            waterTempFirstSample = false;
-        } else {
-            waterTemperatureSamples[waterTemperatureSampleIndex] = value;
-            waterTemperatureSampleIndex =
-                (waterTemperatureSampleIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
-        }
+        float value = SENSOR_WATER_TEMP_PRESENT
+                          ? readTemperatureChannel(ADC_CH_WATER_TEMP)
+                          : 0.0f;
+        updateSampleBuffer(value, waterTemperatureSamples,
+                          waterTemperatureSampleIndex, waterTempFirstSample);
         previousWaterTempSampleTime = now;
     }
 
     // 油温
     if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
-        float value = 0.0f;
-        if (SENSOR_OIL_TEMP_PRESENT) {
-            int16_t raw = readAdcWithSettling(ADC_CH_OIL_TEMP);  // CH2: 油温
-            value = convertVoltageToTemp(convertAdcToVoltage(raw));
-        }
-
-        if (oilTempFirstSample) {
-            for (float& v : oilTemperatureSamples) v = value;  // 初期値を全要素に設定
-            oilTemperatureSampleIndex = 1 % OIL_TEMP_SAMPLE_SIZE;
-            oilTempFirstSample = false;
-        } else {
-            oilTemperatureSamples[oilTemperatureSampleIndex] = value;
-            oilTemperatureSampleIndex =
-                (oilTemperatureSampleIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
-        }
+        float value = SENSOR_OIL_TEMP_PRESENT
+                          ? readTemperatureChannel(ADC_CH_OIL_TEMP)
+                          : 0.0f;
+        updateSampleBuffer(value, oilTemperatureSamples,
+                          oilTemperatureSampleIndex, oilTempFirstSample);
         previousOilTempSampleTime = now;
     }
 }
