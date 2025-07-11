@@ -4,6 +4,8 @@
 #include <math.h>
 
 // 温度から電圧を求めるヘルパー
+// センサー変換定数は sensor.cpp と同じ値をテスト側で定義している
+// config から読み込む処理は行っていない
 static float voltageFromTemperature(float temp)
 {
     constexpr float SUPPLY_VOLTAGE = 5.0f;
