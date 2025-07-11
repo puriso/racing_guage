@@ -5,11 +5,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,   // 目盛の間隔（細かい目盛り）
-                      bool useDecimal,  // 小数点を表示するかどうか
+                      float &previousValue, // 前回描画した値
+                      float tickStep,       // 目盛の間隔（細かい目盛り）
+                      bool useDecimal,      // 小数点を表示するかどうか
                       int x, int y,
                       bool drawStatic,
                       float majorTickStep = -1.0f, // 数字を表示する目盛間隔（負なら旧仕様）
@@ -38,8 +40,13 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // 最大値を更新（範囲外の場合でも最大角度で保持）
   maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
-  // メーター全体を塗りつぶし（非アクティブ部分）
-  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
+  // 初回は全体を描画してキャッシュを初期化
+  if (drawStatic || std::isnan(previousValue)) {
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                   RADIUS - ARC_WIDTH, RADIUS,
+                   -270, 0, INACTIVE_COLOR);
+    previousValue = clampedValue;
+  }
 
   if (drawStatic) {
     // レッドゾーンの背景を描画
@@ -52,14 +59,38 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                    COLOR_RED);  // レッドゾーンは常に赤表示
   }
 
-  // 現在の値に対応する部分を塗りつぶし
-  // クランプ後の値でバーを描画
-  if (clampedValue >= minValue)
-  {
-    uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
-    float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
+  // 前回値との比較で変更部分のみ更新
+  float prevValue = std::isnan(previousValue) ? minValue : std::clamp(previousValue, minValue, maxValue);
+  float prevAngle = -270 + ((prevValue - minValue) / (maxValue - minValue) * 270.0);
+  float currAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
+  float thresholdAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+
+  if (currAngle > prevAngle) {
+    // 増加分を描画
+    if (prevAngle < thresholdAngle) {
+      float start = prevAngle;
+      float end   = std::min(currAngle, thresholdAngle);
+      if (end > start)
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       start, end, ACTIVE_COLOR);
+    }
+    if (currAngle > thresholdAngle) {
+      float start = std::max(prevAngle, thresholdAngle);
+      float end   = currAngle;
+      if (end > start)
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       start, end, overThresholdColor);
+    }
+  } else if (currAngle < prevAngle) {
+    // 減少分を消去
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                   RADIUS - ARC_WIDTH, RADIUS,
+                   currAngle, prevAngle, INACTIVE_COLOR);
   }
+
+  previousValue = clampedValue;
 
 
   if (drawStatic) {
