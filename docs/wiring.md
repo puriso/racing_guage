@@ -11,9 +11,9 @@ graph LR
         ADS1015[ADS1015]
     end
     subgraph Sensors
-        OilTemp[PDF00703S\n(油温)]
-        WaterTemp[PDF00703S\n(水温)]
-        OilPress[PDF00903S\n(油圧)]
+        OilTemp["PDF00703S<br>(油温)"]
+        WaterTemp["PDF00703S<br>(水温)"]
+        OilPress["PDF00903S<br>(油圧)"]
     end
     OilTemp -- A0 --> ADS1015
     WaterTemp -- A1 --> ADS1015
