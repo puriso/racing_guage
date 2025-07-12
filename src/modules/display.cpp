@@ -1,4 +1,5 @@
 #include "display.h"
+#include "fps_display.h"
 #include "DrawFillArcMeter.h"
 #include <algorithm>
 #include <cmath>
@@ -131,23 +132,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
 
     if (DEBUG_MODE_ENABLED) {
-        // FPS ラベルを一度だけ描画し、数値部分だけを更新する
-        static bool fpsLabelDrawn = false;
-        mainCanvas.setFont(&fonts::Font0);
-        mainCanvas.setTextSize(0);
-
-        if (!fpsLabelDrawn) {
-            // 表示領域を初期化してラベルを描画
-            mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
-            mainCanvas.setCursor(5, LCD_HEIGHT - 16);
-            mainCanvas.println("FPS:");
-            fpsLabelDrawn = true;
-        }
-
-        // 数値表示部のみ塗り直して更新
-        mainCanvas.fillRect(5, LCD_HEIGHT - 8, 30, 8, COLOR_BLACK);
-        mainCanvas.setCursor(5, LCD_HEIGHT - 8);
-        mainCanvas.printf("%d", currentFramesPerSecond);
+        drawFpsOverlay();
     }
 
     mainCanvas.pushSprite(0, 0);
