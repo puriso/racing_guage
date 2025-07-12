@@ -68,34 +68,54 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   // 前回値との比較で変更部分のみ更新
-  float prevValue = std::isnan(previousValue) ? minValue : clampValue(previousValue, minValue, maxValue);
+  float prevValue = std::isnan(previousValue) ? minValue
+                                             : clampValue(previousValue, minValue, maxValue);
   float prevAngle = -270 + ((prevValue - minValue) / (maxValue - minValue) * 270.0);
   float currAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
   float thresholdAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
 
-  if (currAngle > prevAngle) {
-    // 増加分を描画
-    if (prevAngle < thresholdAngle) {
-      float start = prevAngle;
-      float end   = std::min(currAngle, thresholdAngle);
-      if (end > start)
+  bool prevOver = prevValue >= threshold;
+  bool currOver = clampedValue >= threshold;
+
+  if (currOver) {
+    if (!prevOver) {
+      // レッドゾーンに入ったのでバー全体を赤く塗り替える
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     -270, currAngle, overThresholdColor);
+    } else if (currAngle > prevAngle) {
+      // 増加分のみ赤で更新
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     prevAngle, currAngle, overThresholdColor);
+    } else if (currAngle < prevAngle) {
+      // 減少分を消去
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     currAngle, prevAngle, INACTIVE_COLOR);
+    }
+  } else {  // 閾値未満
+    if (prevOver) {
+      // レッドゾーンから戻ったので白色で描き直す
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     -270, currAngle, ACTIVE_COLOR);
+      if (prevAngle > currAngle) {
         canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                        RADIUS - ARC_WIDTH, RADIUS,
-                       start, end, ACTIVE_COLOR);
-    }
-    if (currAngle > thresholdAngle) {
-      float start = std::max(prevAngle, thresholdAngle);
-      float end   = currAngle;
-      if (end > start)
+                       currAngle, prevAngle, INACTIVE_COLOR);
+      }
+    } else {
+      if (currAngle > prevAngle) {
         canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                        RADIUS - ARC_WIDTH, RADIUS,
-                       start, end, overThresholdColor);
+                       prevAngle, currAngle, ACTIVE_COLOR);
+      } else if (currAngle < prevAngle) {
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       currAngle, prevAngle, INACTIVE_COLOR);
+      }
     }
-  } else if (currAngle < prevAngle) {
-    // 減少分を消去
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                   RADIUS - ARC_WIDTH, RADIUS,
-                   currAngle, prevAngle, INACTIVE_COLOR);
   }
 
   previousValue = clampedValue;
