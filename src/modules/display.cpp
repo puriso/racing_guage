@@ -38,7 +38,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 
     canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
-    if (oilTemp >= MIN_TEMP) {
+    if (oilTemp >= MIN_TEMP && oilTemp < 199.0f) {
         int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
         uint16_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
         canvas.fillRect(X, Y, barWidth, H, barColor);
@@ -63,7 +63,11 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
     char tempStr[6];
     // snprintf でバッファサイズを指定し、
     // 安全に文字列化する
-    snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
+    if (oilTemp >= 199.0f) {
+        snprintf(tempStr, sizeof(tempStr), "-");  // 異常値はハイフン表示
+    } else {
+        snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
+    }
     canvas.setFont(&FreeSansBold24pt7b);
     canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
 }

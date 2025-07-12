@@ -29,8 +29,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
+  // NaN や 199 ℃ 以上は異常値として扱う
+  bool invalidValue = std::isnan(value) || value >= 199.0f;
+
   // 値を範囲内に収める
-  float clampedValue = value;
+  float clampedValue = invalidValue ? minValue : value;
   if (clampedValue < minValue)
     clampedValue = minValue;
   else if (clampedValue > maxValue)
@@ -54,7 +57,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 現在の値に対応する部分を塗りつぶし
   // クランプ後の値でバーを描画
-  if (clampedValue >= minValue)
+  if (clampedValue >= minValue && !invalidValue)
   {
     uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
     float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
@@ -124,12 +127,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 値を右下に表示
   char valueText[10];
-  if (useDecimal)
-  {
+  if (invalidValue) {
+    snprintf(valueText, sizeof(valueText), "-");  // 異常値はハイフン表示
+  } else if (useDecimal) {
     snprintf(valueText, sizeof(valueText), "%.1f", value);
-  }
-  else
-  {
+  } else {
     snprintf(valueText, sizeof(valueText), "%.0f", round(value));
   }
 
