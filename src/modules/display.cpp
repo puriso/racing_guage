@@ -67,7 +67,12 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
     char tempStr[6];
     // snprintf でバッファサイズを指定し、
     // 安全に文字列化する
-    snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
+    // 199℃以上は異常値として "DCE" を表示
+    if (oilTemp >= 199.0f) {
+        snprintf(tempStr, sizeof(tempStr), "DCE");
+    } else {
+        snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
+    }
     canvas.setFont(&FreeSansBold24pt7b);
     canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
 }

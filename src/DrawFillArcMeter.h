@@ -183,7 +183,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 値を右下に表示
   char valueText[10];
-  if (useDecimal)
+  if (value >= 199.0f) {
+    // 199℃以上は "DCE" を表示
+    snprintf(valueText, sizeof(valueText), "DCE");
+  }
+  else if (useDecimal)
   {
     snprintf(valueText, sizeof(valueText), "%.1f", value);
   }
