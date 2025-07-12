@@ -16,6 +16,10 @@ float recordedMaxOilPressure = 0.0f;
 float recordedMaxWaterTemp = 0.0f;
 int recordedMaxOilTempTop = 0;
 
+// 前回描画したゲージ値
+static float prevPressureValue = std::numeric_limits<float>::quiet_NaN();
+static float prevWaterTempValue = std::numeric_limits<float>::quiet_NaN();
+
 struct DisplayCache {
     float pressureAvg;
     float waterTempAvg;
@@ -100,6 +104,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         bool useDecimal = pressureAvg < 9.95f;
         drawFillArcMeter(mainCanvas, pressureAvg,  0.0f, MAX_OIL_PRESSURE_METER,  8.0f,
                          COLOR_RED, "BAR", "OIL.P", recordedMaxOilPressure,
+                         prevPressureValue,
                          0.5f, useDecimal,   0,   60,
                          !pressureGaugeInitialized);
         pressureGaugeInitialized = true;
@@ -112,6 +117,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         }
         drawFillArcMeter(mainCanvas, waterTempAvg, WATER_TEMP_METER_MIN, WATER_TEMP_METER_MAX, 98.0f,
                          COLOR_RED, "Celsius", "WATER.T", recordedMaxWaterTemp,
+                         prevWaterTempValue,
                          1.0f, false, 160,  60,
                          !waterGaugeInitialized,
                          5.0f, WATER_TEMP_METER_MIN);

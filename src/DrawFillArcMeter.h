@@ -5,11 +5,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+
+// std::clamp が利用できない環境向けの簡易版
+template <typename T>
+static inline T clampValue(T val, T low, T high) {
+  if (val < low) return low;
+  if (val > high) return high;
+  return val;
+}
 
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
-                      float tickStep,   // 目盛の間隔（細かい目盛り）
-                      bool useDecimal,  // 小数点を表示するかどうか
+                      float &previousValue, // 前回描画した値
+                      float tickStep,       // 目盛の間隔（細かい目盛り）
+                      bool useDecimal,      // 小数点を表示するかどうか
                       int x, int y,
                       bool drawStatic,
                       float majorTickStep = -1.0f, // 数字を表示する目盛間隔（負なら旧仕様）
@@ -38,8 +48,13 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   // 最大値を更新（範囲外の場合でも最大角度で保持）
   maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
-  // メーター全体を塗りつぶし（非アクティブ部分）
-  canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, 0, INACTIVE_COLOR);
+  // 初回は全体を描画してキャッシュを初期化
+  if (drawStatic || std::isnan(previousValue)) {
+    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                   RADIUS - ARC_WIDTH, RADIUS,
+                   -270, 0, INACTIVE_COLOR);
+    previousValue = clampedValue;
+  }
 
   if (drawStatic) {
     // レッドゾーンの背景を描画
@@ -52,14 +67,58 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                    COLOR_RED);  // レッドゾーンは常に赤表示
   }
 
-  // 現在の値に対応する部分を塗りつぶし
-  // クランプ後の値でバーを描画
-  if (clampedValue >= minValue)
-  {
-    uint16_t barColor = (value >= threshold) ? overThresholdColor : ACTIVE_COLOR;
-    float valueAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED, RADIUS - ARC_WIDTH, RADIUS, -270, valueAngle, barColor);
+  // 前回値との比較で変更部分のみ更新
+  float prevValue = std::isnan(previousValue) ? minValue
+                                             : clampValue(previousValue, minValue, maxValue);
+  float prevAngle = -270 + ((prevValue - minValue) / (maxValue - minValue) * 270.0);
+  float currAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
+  float thresholdAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+
+  bool prevOver = prevValue >= threshold;
+  bool currOver = clampedValue >= threshold;
+
+  if (currOver) {
+    if (!prevOver) {
+      // レッドゾーンに入ったのでバー全体を赤く塗り替える
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     -270, currAngle, overThresholdColor);
+    } else if (currAngle > prevAngle) {
+      // 増加分のみ赤で更新
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     prevAngle, currAngle, overThresholdColor);
+    } else if (currAngle < prevAngle) {
+      // 減少分を消去
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     currAngle, prevAngle, INACTIVE_COLOR);
+    }
+  } else {  // 閾値未満
+    if (prevOver) {
+      // レッドゾーンから戻ったので白色で描き直す
+      canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                     RADIUS - ARC_WIDTH, RADIUS,
+                     -270, currAngle, ACTIVE_COLOR);
+      if (prevAngle > currAngle) {
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       currAngle, prevAngle, INACTIVE_COLOR);
+      }
+    } else {
+      if (currAngle > prevAngle) {
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       prevAngle, currAngle, ACTIVE_COLOR);
+      } else if (currAngle < prevAngle) {
+        canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS - ARC_WIDTH, RADIUS,
+                       currAngle, prevAngle, INACTIVE_COLOR);
+      }
+    }
   }
+
+  previousValue = clampedValue;
 
 
   if (drawStatic) {
