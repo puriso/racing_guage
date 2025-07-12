@@ -39,9 +39,10 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
+  bool valueShort = value <= -1.0f;   // ショート判定用
   bool valueError = value >= 199.0f;
-  if (valueError) {
-    // 異常値の場合は 0 として扱う
+  if (valueShort || valueError) {
+    // 異常値は 0 として扱い表示のみ置き換える
     value = 0.0f;
   }
 
@@ -189,7 +190,11 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 値を右下に表示
   char valueText[10];
-  if (valueError) {
+  if (valueShort) {
+    // ショート発生時は "St" を表示
+    snprintf(valueText, sizeof(valueText), "St");
+  }
+  else if (valueError) {
     // 199℃以上は "DE" を表示
     snprintf(valueText, sizeof(valueText), "DE");
   }
