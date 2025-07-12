@@ -131,12 +131,23 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
 
     if (DEBUG_MODE_ENABLED) {
-        mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
+        // FPS ラベルを一度だけ描画し、数値部分だけを更新する
+        static bool fpsLabelDrawn = false;
         mainCanvas.setFont(&fonts::Font0);
         mainCanvas.setTextSize(0);
-        // FPS表示がラベルと重ならないように改行して描画
-        mainCanvas.setCursor(5, LCD_HEIGHT - 16);
-        mainCanvas.printf("FPS:\n%d", currentFramesPerSecond);
+
+        if (!fpsLabelDrawn) {
+            // 表示領域を初期化してラベルを描画
+            mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
+            mainCanvas.setCursor(5, LCD_HEIGHT - 16);
+            mainCanvas.println("FPS:");
+            fpsLabelDrawn = true;
+        }
+
+        // 数値表示部のみ塗り直して更新
+        mainCanvas.fillRect(5, LCD_HEIGHT - 8, 30, 8, COLOR_BLACK);
+        mainCanvas.setCursor(5, LCD_HEIGHT - 8);
+        mainCanvas.printf("%d", currentFramesPerSecond);
     }
 
     mainCanvas.pushSprite(0, 0);
