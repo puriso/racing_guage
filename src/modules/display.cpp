@@ -134,8 +134,9 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
         mainCanvas.setFont(&fonts::Font0);
         mainCanvas.setTextSize(0);
-        mainCanvas.setCursor(5, LCD_HEIGHT - 12);
-        mainCanvas.printf("FPS:%d", currentFramesPerSecond);
+        // FPS表示がラベルと重ならないように改行して描画
+        mainCanvas.setCursor(5, LCD_HEIGHT - 16);
+        mainCanvas.printf("FPS:\n%d", currentFramesPerSecond);
     }
 
     mainCanvas.pushSprite(0, 0);
