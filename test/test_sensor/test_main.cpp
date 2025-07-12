@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "modules/sensor.h"
+#include "../../src/modules/sensor.cpp" // センサー変換関数をリンクするために追加
 #include <math.h>
 
 // 温度から電圧を求めるヘルパー
