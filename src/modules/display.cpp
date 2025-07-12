@@ -165,8 +165,8 @@ void updateGauges()
     smoothOilTemp   += 0.1f * (targetOilTemp   - smoothOilTemp);
 
     float oilTempValue = smoothOilTemp;
-    if (!SENSOR_OIL_TEMP_PRESENT || oilTempValue >= 199.0f) {
-        // センサー異常時は 0 として扱う
+    if (!SENSOR_OIL_TEMP_PRESENT) {
+        // センサーが無い場合は常に 0 表示
         oilTempValue = 0.0f;
     }
 
