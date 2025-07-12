@@ -1,4 +1,5 @@
 #include "display.h"
+#include "fps_display.h"
 #include "DrawFillArcMeter.h"
 #include <algorithm>
 #include <cmath>
@@ -137,11 +138,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     }
 
     if (DEBUG_MODE_ENABLED) {
-        mainCanvas.fillRect(0, LCD_HEIGHT - 16, 80, 16, COLOR_BLACK);
-        mainCanvas.setFont(&fonts::Font0);
-        mainCanvas.setTextSize(0);
-        mainCanvas.setCursor(5, LCD_HEIGHT - 12);
-        mainCanvas.printf("FPS:%d", currentFramesPerSecond);
+        drawFpsOverlay();
     }
 
     mainCanvas.pushSprite(0, 0);
