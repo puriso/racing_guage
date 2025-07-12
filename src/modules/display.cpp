@@ -69,7 +69,9 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
         snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
     }
     canvas.setFont(&FreeSansBold24pt7b);
-    canvas.drawRightString(tempStr, LCD_WIDTH - 1, 2);
+    int textX = LCD_WIDTH - 1;
+    if (oilTemp >= 199.0f) textX -= 20;  // ハイフン表示は少し左寄せ
+    canvas.drawRightString(tempStr, textX, 2);
 }
 
 // ────────────────────── 画面更新＋ログ ──────────────────────

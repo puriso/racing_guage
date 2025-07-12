@@ -46,8 +46,8 @@ float convertVoltageToOilPressure(float voltage)
 
 float convertVoltageToTemp(float voltage)
 {
-    // 電源電圧より高い/等しい電圧はセンサー異常とみなし 200 ℃ を返す
-    if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
+    // 電源電圧より高い/等しい電圧はセンサー異常とみなし 0 ℃ を返す
+    if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 0.0f;
 
     // 分圧式よりサーミスタ抵抗値を算出
     // R = Rref * (V / (Vcc - V))  (サーミスタがGND側の場合)
@@ -59,9 +59,8 @@ float convertVoltageToTemp(float voltage)
                     THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
 
     float celsius = kelvin - 273.16f;
-    // 199 ℃ 以上は断線などの影響で異常値の可能性が高いため
-    // 異常を示す 200 ℃ を返す
-    if (std::isnan(celsius) || celsius >= 199.0f) return 200.0f;
+    // 199 ℃ 以上は断線などの影響で異常値の可能性が高いため 0 ℃ とみなす
+    if (std::isnan(celsius) || celsius >= 199.0f) return 0.0f;
     return celsius;
 }
 
