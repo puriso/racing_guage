@@ -42,9 +42,15 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 
     canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
-    if (oilTemp >= MIN_TEMP) {
-        int barWidth = static_cast<int>(W * (oilTemp - MIN_TEMP) / RANGE);
-        uint16_t barColor = (oilTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
+    float drawTemp = oilTemp;
+    if (drawTemp >= 199.0f) {
+        // 異常値の場合はバーを 0 として扱う
+        drawTemp = 0.0f;
+    }
+
+    if (drawTemp >= MIN_TEMP) {
+        int barWidth = static_cast<int>(W * (drawTemp - MIN_TEMP) / RANGE);
+        uint16_t barColor = (drawTemp >= ALERT_TEMP) ? COLOR_RED : COLOR_WHITE;
         canvas.fillRect(X, Y, barWidth, H, barColor);
     }
 
@@ -67,9 +73,9 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
     char tempStr[6];
     // snprintf でバッファサイズを指定し、
     // 安全に文字列化する
-    // 199℃以上は異常値として "DCE" を表示
+    // 199℃以上は異常値として "DE" を表示
     if (oilTemp >= 199.0f) {
-        snprintf(tempStr, sizeof(tempStr), "DCE");
+        snprintf(tempStr, sizeof(tempStr), "DE");
     } else {
         snprintf(tempStr, sizeof(tempStr), "%d", static_cast<int>(oilTemp));
     }
@@ -159,11 +165,16 @@ void updateGauges()
     smoothOilTemp   += 0.1f * (targetOilTemp   - smoothOilTemp);
 
     float oilTempValue = smoothOilTemp;
-    if (!SENSOR_OIL_TEMP_PRESENT) oilTempValue = 0.0f;
+    if (!SENSOR_OIL_TEMP_PRESENT || oilTempValue >= 199.0f) {
+        // センサー異常時は 0 として扱う
+        oilTempValue = 0.0f;
+    }
 
     recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
     recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
-    recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
+    if (targetOilTemp < 199.0f) {
+        recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
+    }
 
     renderDisplayAndLog(pressureAvg, smoothWaterTemp,
                         oilTempValue, recordedMaxOilTempTop);
