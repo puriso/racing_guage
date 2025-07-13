@@ -79,7 +79,7 @@ graph TD
     AN1 -- CH1 --> ADS
 
     subgraph "Oil Pressure"
-        OilP[0.5-4.5V]
+        OilP["0.5-4.5V"]
         V5 --> OilP --> GND
     end
     OilP -- CH2 --> ADS
