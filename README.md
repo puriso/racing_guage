@@ -47,8 +47,6 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ```mermaid
 graph TD
     subgraph "M5Stack CoreS3"
-        SDA["SDA (GPIO9)"]
-        SCL["SCL (GPIO8)"]
         V5{{5V}}
         GND{{GND}}
     end
