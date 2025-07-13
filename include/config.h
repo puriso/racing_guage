@@ -35,6 +35,8 @@ constexpr uint16_t COLOR_GRAY   = rgb565(169, 169, 169);
 constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
 // メーター目盛の上限
 constexpr float MAX_OIL_PRESSURE_METER   = 10.0f;
+// 0.25bar 以下なら接続エラーとして扱う閾値
+constexpr float OIL_PRESSURE_DISCONNECT_THRESHOLD = 0.25f;
 
 // ── 水温メーター設定 ──
 // 水温メーター下限と上限を80℃〜105℃に設定
