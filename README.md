@@ -57,8 +57,6 @@ graph TD
 
     SDA -- SDA --> ADS
     SCL -- SCL --> ADS
-    V5 --|10kOhm|--> SDA
-    V5 --|10kOhm|--> SCL
     V5 --> ADS
     GND --> ADS
 
