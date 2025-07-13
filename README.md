@@ -48,8 +48,8 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 graph TD
     subgraph "M5Stack CoreS3"
         V5{{5V}}
-        GND{{GND}}
     end
+    GND{{GND}}
 
     ADS[ADS1015]
 
