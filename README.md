@@ -41,7 +41,44 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 > 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
 > 5Vピンから給電する場合は `M5.Power.setExtOutput(false)` として出力を無効にします。
 
-> 📌 詳しい配線図は後日追加予定です。
+
+### 配線図 / Wiring Diagram
+
+```mermaid
+graph TD
+    subgraph "M5Stack CoreS3"
+        V5{{5V}}
+        GND{{GND}}
+    end
+
+    ADS[ADS1015]
+
+    V5 --> ADS
+    GND --> ADS
+
+    subgraph "Oil Temp"
+        R1[10kOhm]
+        NTC1[NTC]
+        V5 --> R1 --> AN0((A0))
+        AN0 --> NTC1 --> GND
+    end
+    AN0 -- CH0 --> ADS
+
+    subgraph "Water Temp"
+        R2[10kOhm]
+        NTC2[NTC]
+        V5 --> R2 --> AN1((A1))
+        AN1 --> NTC2 --> GND
+    end
+    AN1 -- CH1 --> ADS
+
+    subgraph "Oil Pressure"
+        OilP["0.5-4.5V"]
+        V5 --> OilP --> GND
+    end
+    OilP -- CH2 --> ADS
+```
+
 
 ### センサー対応表
 
