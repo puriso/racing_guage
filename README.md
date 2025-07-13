@@ -1,6 +1,8 @@
 # M5Stack CoreS3 Multi-Gauge  
 # M5Stack CoreS3 マルチメーター
 
+[![PlatformIO Build](https://github.com/puriso/racing_guage/actions/workflows/pio-build.yml/badge.svg?branch=main)](https://github.com/puriso/racing_guage/actions/workflows/pio-build.yml)
+
 A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays:
 
 * **Oil Pressure** via **Defi PDF00903S** (0 – 9.9 bar, 0.5 – 4.5 V)
