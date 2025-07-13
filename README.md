@@ -41,6 +41,42 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 
 > 📌 詳しい配線図は後日追加予定です。
 
+### センサー対応表
+
+油圧センサは電圧出力式のため抵抗値はありません。参考として油圧と出力電圧の関係を下表に示します。
+
+| 油圧 [bar] | 電圧 [V] |
+|-----------|---------|
+| 0 | 0.50 |
+| 1 | 0.90 |
+| 2 | 1.30 |
+| 3 | 1.70 |
+| 4 | 2.10 |
+| 5 | 2.50 |
+| 6 | 2.90 |
+| 7 | 3.30 |
+| 8 | 3.70 |
+| 9 | 4.10 |
+| 10 | 4.50 |
+
+温度センサ（サーミスタ）の抵抗値は以下の通りです。
+
+| 温度 [°C] | 抵抗値 [Ω] |
+|-----------|-----------|
+| 0 | 28223.73 |
+| 10 | 18231.40 |
+| 20 | 12133.17 |
+| 30 | 8294.61 |
+| 40 | 5809.87 |
+| 50 | 4160.14 |
+| 60 | 3039.19 |
+| 70 | 2261.28 |
+| 80 | 1710.89 |
+| 90 | 1314.50 |
+| 100 | 1024.32 |
+| 110 | 808.66 |
+| 120 | 646.12 |
+
 ### ビルド方法
 1. [PlatformIO](https://platformio.org/) をインストール (VS Code 推奨)
 2. `platformio run` でビルドし、`platformio upload` で書き込み
@@ -79,6 +115,42 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 > To run from the 5V pin, keep `M5.Power.setExtOutput(false)` so the pin won't output power.
 
 > 📌 Detailed wiring diagrams will be added soon.
+
+### Sensor Tables
+
+The pressure sensor outputs only voltage; the mapping between pressure and output voltage is below.
+
+| Pressure [bar] | Voltage [V] |
+|----------------|-------------|
+| 0 | 0.50 |
+| 1 | 0.90 |
+| 2 | 1.30 |
+| 3 | 1.70 |
+| 4 | 2.10 |
+| 5 | 2.50 |
+| 6 | 2.90 |
+| 7 | 3.30 |
+| 8 | 3.70 |
+| 9 | 4.10 |
+| 10 | 4.50 |
+
+The temperature sensor is a thermistor; typical resistance values are shown below.
+
+| Temperature [°C] | Resistance [Ω] |
+|------------------|---------------|
+| 0 | 28223.73 |
+| 10 | 18231.40 |
+| 20 | 12133.17 |
+| 30 | 8294.61 |
+| 40 | 5809.87 |
+| 50 | 4160.14 |
+| 60 | 3039.19 |
+| 70 | 2261.28 |
+| 80 | 1710.89 |
+| 90 | 1314.50 |
+| 100 | 1024.32 |
+| 110 | 808.66 |
+| 120 | 646.12 |
 
 ### Build Instructions
 1. Install [PlatformIO](https://platformio.org/) (VS Code recommended)
