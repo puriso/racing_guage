@@ -39,7 +39,29 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 > 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
 > 5Vピンから給電する場合は `M5.Power.setExtOutput(false)` として出力を無効にします。
 
-> 📌 詳しい配線図は後日追加予定です。
+> 📌 以下に配線図を示します。
+
+```mermaid
+graph LR
+    subgraph Core
+        CoreS3[M5Stack CoreS3]
+    end
+    subgraph ADC
+        ADS1015[ADS1015]
+    end
+    subgraph Sensors
+        OilTemp["PDF00703S<br>(油温)"]
+        WaterTemp["PDF00703S<br>(水温)"]
+        OilPress["PDF00903S<br>(油圧)"]
+    end
+    OilTemp -- A0 --> ADS1015
+    WaterTemp -- A1 --> ADS1015
+    OilPress -- A2 --> ADS1015
+    ADS1015 --|GPIO9 SDA|--> CoreS3
+    ADS1015 --|GPIO8 SCL|--> CoreS3
+    CoreS3 -.->|5V / GND| ADS1015
+    CoreS3 -.->|5V / GND| Sensors
+```
 
 ### ビルド方法
 1. [PlatformIO](https://platformio.org/) をインストール (VS Code 推奨)
@@ -78,7 +100,29 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 > 💡 The 5V pin can power the CoreS3 or supply external devices. When `M5.Power.setExtOutput(true)` is active, avoid feeding power from another 5V source at the same time.
 > To run from the 5V pin, keep `M5.Power.setExtOutput(false)` so the pin won't output power.
 
-> 📌 Detailed wiring diagrams will be added soon.
+> 📌 The wiring diagram is shown below.
+
+```mermaid
+graph LR
+    subgraph Core
+        CoreS3[M5Stack CoreS3]
+    end
+    subgraph ADC
+        ADS1015[ADS1015]
+    end
+    subgraph Sensors
+        OilTemp["PDF00703S<br>(Oil Temp)"]
+        WaterTemp["PDF00703S<br>(Water Temp)"]
+        OilPress["PDF00903S<br>(Oil Press)"]
+    end
+    OilTemp -- A0 --> ADS1015
+    WaterTemp -- A1 --> ADS1015
+    OilPress -- A2 --> ADS1015
+    ADS1015 --|GPIO9 SDA|--> CoreS3
+    ADS1015 --|GPIO8 SCL|--> CoreS3
+    CoreS3 -.->|5V / GND| ADS1015
+    CoreS3 -.->|5V / GND| Sensors
+```
 
 ### Build Instructions
 1. Install [PlatformIO](https://platformio.org/) (VS Code recommended)
