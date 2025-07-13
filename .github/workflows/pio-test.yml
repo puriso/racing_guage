@@ -41,4 +41,4 @@ jobs:
         run: pip install platformio
 
       - name: テスト実行
-        run: pio test -e m5stack-cores3
+        run: pio test -e m5stack-cores3 --without-upload
