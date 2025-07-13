@@ -105,7 +105,7 @@ void acquireSensorData()
 
     // 油圧
     if (SENSOR_OIL_PRESSURE_PRESENT) {
-        int16_t raw = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
+        int16_t raw = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH2: 油圧
         oilPressureSamples[oilPressureSampleIndex] =
             convertVoltageToOilPressure(convertAdcToVoltage(raw));
     } else {
