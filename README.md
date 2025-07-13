@@ -167,3 +167,7 @@ This project is not licensed under the MIT License. All rights reserved by the a
 ---
 
 🚗 Built for performance, track use, and hobbyist tuning.
+
+## 配線図
+M5Stack CoreS3 と 3 種センサの接続例です。  
+👉 [docs/wiring.md](docs/wiring.md) を参照
