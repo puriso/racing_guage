@@ -53,7 +53,6 @@ graph TD
 
     ADS[ADS1015]
 
-    SDA -- SDA --> ADS
     SCL -- SCL --> ADS
     V5 --> ADS
     GND --> ADS
