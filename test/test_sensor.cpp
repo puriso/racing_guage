@@ -30,17 +30,13 @@ void test_convertVoltageToTemp_invalid_high() {
     TEST_ASSERT_EQUAL_FLOAT(200.0f, convertVoltageToTemp(5.0f));
 }
 
-void setup() {
-    // テスト初期化
+int main(int argc, char **argv) {
+    // Unity のテストランナー
     UNITY_BEGIN();
     RUN_TEST(test_convertAdcToVoltage_nominal);
     RUN_TEST(test_convertAdcToVoltage_negative);
     RUN_TEST(test_convertVoltageToTemp_normal);
     RUN_TEST(test_convertVoltageToTemp_invalid_low);
     RUN_TEST(test_convertVoltageToTemp_invalid_high);
-    UNITY_END();
-}
-
-void loop() {
-    // ループ処理は使用しない
+    return UNITY_END();
 }
