@@ -47,8 +47,8 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ```mermaid
 graph TD
     subgraph "M5Stack CoreS3"
-        SDA[[SDA (GPIO9)]]
-        SCL[[SCL (GPIO8)]]
+        SDA["SDA (GPIO9)"]
+        SCL["SCL (GPIO8)"]
         V5{{5V}}
         GND{{GND}}
     end
@@ -57,13 +57,13 @@ graph TD
 
     SDA -- SDA --> ADS
     SCL -- SCL --> ADS
-    V5 --|10kΩ| SDA
-    V5 --|10kΩ| SCL
+    V5 --|10kOhm|--> SDA
+    V5 --|10kOhm|--> SCL
     V5 --> ADS
     GND --> ADS
 
     subgraph "Oil Temp"
-        R1[10kΩ]
+        R1[10kOhm]
         NTC1[NTC]
         V5 --> R1 --> AN0((A0))
         AN0 --> NTC1 --> GND
@@ -71,7 +71,7 @@ graph TD
     AN0 -- CH0 --> ADS
 
     subgraph "Water Temp"
-        R2[10kΩ]
+        R2[10kOhm]
         NTC2[NTC]
         V5 --> R2 --> AN1((A1))
         AN1 --> NTC2 --> GND
