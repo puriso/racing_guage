@@ -41,7 +41,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 > 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
 > 5Vピンから給電する場合は `M5.Power.setExtOutput(false)` として出力を無効にします。
 
-> 📌 詳しい配線図は後日追加予定です。
+> 📌 詳しい配線図は [docs/wiring.md](docs/wiring.md) を参照してください。
 
 ### センサー対応表
 
@@ -116,7 +116,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 > 💡 The 5V pin can power the CoreS3 or supply external devices. When `M5.Power.setExtOutput(true)` is active, avoid feeding power from another 5V source at the same time.
 > To run from the 5V pin, keep `M5.Power.setExtOutput(false)` so the pin won't output power.
 
-> 📌 Detailed wiring diagrams will be added soon.
+> 📌 See [docs/wiring.md](docs/wiring.md) for detailed wiring.
 
 ### Sensor Tables
 
