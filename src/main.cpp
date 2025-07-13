@@ -27,7 +27,6 @@ void setup()
     M5.Power.begin();           // まず電源モジュールを初期化
     M5.Power.setExtOutput(false); // 外部給電時は 5V ピン出力を停止
 
-    CoreS3.Ltr553.begin(&ltr553InitParams);
 
     display.init();
     // DMA を初期化
@@ -61,10 +60,11 @@ void setup()
     adsConverter.setDataRate(RATE_ADS1015_1600SPS);
 
     if (SENSOR_AMBIENT_LIGHT_PRESENT) {
-        CoreS3.Ltr553.begin(&ltr553InitParams);
-        CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
+        // ALS のゲインと積分時間を設定してから初期化
         ltr553InitParams.als_gain             = LTR5XX_ALS_GAIN_48X;
         ltr553InitParams.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
+        CoreS3.Ltr553.begin(&ltr553InitParams);
+        CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
     }
 }
 
