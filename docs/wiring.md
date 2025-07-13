@@ -1,0 +1,33 @@
+## M5Stack CoreS3 × 油圧・水温・油温センサ 配線図
+
+```mermaid
+graph LR
+  subgraph Core
+      CoreS3[M5Stack<br>CoreS3]
+  end
+  subgraph ADC
+      ADS1015[ADS1015<br>(I²C ADC)]
+  end
+  subgraph Sensors
+      OilTemp["PDF00703S<br>（油温）"]
+      WaterTemp["PDF00703S<br>（水温）"]
+      OilPress["PDF00903S<br>（油圧）"]
+  end
+
+  %% Analog channels
+  OilTemp  -- "A0 (AIN0)" --> ADS1015
+  WaterTemp -- "A1 (AIN1)" --> ADS1015
+  OilPress -- "A2 (AIN2)" --> ADS1015
+
+  %% I2C bus
+  ADS1015 -- "SDA → GPIO9" --> CoreS3
+  ADS1015 -- "SCL → GPIO8" --> CoreS3
+
+  %% Power rails
+  CoreS3  -.->|5 V| ADS1015
+  CoreS3  -.->|GND| ADS1015
+  ADS1015 -.->|5 V| OilTemp & WaterTemp & OilPress
+  ADS1015 -.->|GND| OilTemp & WaterTemp & OilPress
+```
+
+センサは 0.5 – 4.5 V の ratiometric 出力、ADS1015 は単電源 5 V 動作を想定。
