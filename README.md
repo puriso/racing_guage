@@ -87,8 +87,8 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 ---
 
 ### License
-This project is licensed under the **MIT License**.  
-Use in vehicles is at your own risk—always validate sensor readings before driving.
+このプロジェクトは MIT ライセンスではありません。著作権は作者が保持します。
+This project is not licensed under the MIT License. All rights reserved by the author.
 
 ---
 
