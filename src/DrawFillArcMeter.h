@@ -190,13 +190,20 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   // 値を右下に表示
   char valueText[10];
+  char errorLine1[20];
+  char errorLine2[8];
+  bool isErrorText = false;
   if (valueShort) {
-    // ショート発生時は "St" を表示
-    snprintf(valueText, sizeof(valueText), "St");
+    // ショート発生時は "Short circuit\nError" を表示
+    snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
+    snprintf(errorLine2, sizeof(errorLine2), "Error");
+    isErrorText = true;
   }
   else if (valueError) {
-    // 199℃以上は "DE" を表示
-    snprintf(valueText, sizeof(valueText), "DE");
+    // 199℃以上は "Disconnection\nError" を表示
+    snprintf(errorLine1, sizeof(errorLine1), "Disconnection");
+    snprintf(errorLine2, sizeof(errorLine2), "Error");
+    isErrorText = true;
   }
   else if (useDecimal)
   {
@@ -207,14 +214,30 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
     snprintf(valueText, sizeof(valueText), "%.0f", round(value));
   }
 
-  canvas.setFont(&FreeSansBold24pt7b);
   int valueX = VALUE_BASE_X;  // 数字は固定位置に表示
   int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
-  // 数字描画領域のみを毎回黒で塗りつぶす
-  canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() / 2 - 2,
-                  75, canvas.fontHeight() + 4, BACKGROUND_COLOR);
-  canvas.setCursor(valueX - canvas.textWidth(valueText), valueY - (canvas.fontHeight() / 2));
-  canvas.print(valueText);
+
+  if (isErrorText) {
+    // エラー表示用フォントを小さく設定
+    canvas.setFont(&fonts::Font0);
+    int rectHeight = canvas.fontHeight() * 2 + 4;
+    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() - 2,
+                    75, rectHeight, BACKGROUND_COLOR);
+    int line1Y = valueY - canvas.fontHeight();
+    canvas.setCursor(valueX - canvas.textWidth(errorLine1), line1Y);
+    canvas.print(errorLine1);
+    int line2Y = line1Y + canvas.fontHeight();
+    canvas.setCursor(valueX - canvas.textWidth(errorLine2), line2Y);
+    canvas.print(errorLine2);
+  } else {
+    canvas.setFont(&FreeSansBold24pt7b);
+    // 数字描画領域のみを毎回黒で塗りつぶす
+    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() / 2 - 2,
+                    75, canvas.fontHeight() + 4, BACKGROUND_COLOR);
+    canvas.setCursor(valueX - canvas.textWidth(valueText),
+                    valueY - (canvas.fontHeight() / 2));
+    canvas.print(valueText);
+  }
 
 }
 
