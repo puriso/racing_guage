@@ -154,10 +154,13 @@ void updateGauges()
 
     float pressureAvg     = calculateAverage(oilPressureSamples);
     pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
+    // 12bar 以上はショート扱い
+    bool pressureShort = (pressureAvg >= 12.0f);
     // 油圧が極端に低い場合はセンサー未接続とみなす
     bool pressureDisconnected =
-        (pressureAvg <= OIL_PRESSURE_DISCONNECT_THRESHOLD);
-    float pressureDisplay = pressureDisconnected ? 199.0f : pressureAvg;
+        (!pressureShort && pressureAvg <= OIL_PRESSURE_DISCONNECT_THRESHOLD);
+    float pressureDisplay =
+        pressureDisconnected ? 199.0f : pressureAvg;
     float targetWaterTemp = calculateAverage(waterTemperatureSamples);
     float targetOilTemp   = calculateAverage(oilTemperatureSamples);
 
@@ -173,7 +176,7 @@ void updateGauges()
         oilTempValue = 0.0f;
     }
 
-    if (!pressureDisconnected) {
+    if (!pressureDisconnected && !pressureShort) {
         // 正常値のみ最大記録を更新
         recordedMaxOilPressure =
             std::max(recordedMaxOilPressure, pressureAvg);

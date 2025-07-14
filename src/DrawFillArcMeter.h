@@ -39,7 +39,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
-  bool valueShort = value <= -1.0f;   // ショート判定用
+  // 値が 12bar 以上ならショートとみなす
+  bool valueShort = value >= 12.0f;
   bool valueError = value >= 199.0f;
   if (valueShort || valueError) {
     // 異常値は 0 として扱い表示のみ置き換える
@@ -194,7 +195,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   char errorLine2[8];
   bool isErrorText = false;
   if (valueShort) {
-    // ショート発生時は "Short circuit\nError" を表示
+    // 12bar 以上のショートエラー表示
+    // "Short circuit\nError" を表示
     snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
     snprintf(errorLine2, sizeof(errorLine2), "Error");
     isErrorText = true;

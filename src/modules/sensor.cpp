@@ -41,8 +41,8 @@ float convertAdcToVoltage(int16_t rawAdc)
 
 float convertVoltageToOilPressure(float voltage)
 {
-    // 4.9V 以上はセンサーショートとみなす
-    if (voltage >= 4.9f) return -1.0f;  // ショート判定用の特殊値
+    // 電源電圧近くまで上昇してもそのまま変換し、
+    // 12bar 以上かどうかは呼び出し側で判断する
 
     // センサー実測式に基づき圧力へ変換
     return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;
