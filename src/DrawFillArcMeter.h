@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <cstring>
 
 // std::clamp が利用できない環境向けの簡易版
 template <typename T>
@@ -39,9 +40,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
-  // 値が 12bar 以上ならショートとみなす
-  bool valueShort = value >= 12.0f;
-  bool valueError = value >= 199.0f;
+  // 油圧だったら short(12bar 以上) かどうか、
+  // 温度計だったら 199℃ 以上かどうかをチェックする
+  bool isPressureGauge = strcmp(label, "OIL.P") == 0;
+  bool isTempGauge     = strcmp(unit, "Celsius") == 0;
+  bool valueShort = isPressureGauge && value >= 12.0f;
+  bool valueError = isTempGauge && value >= 199.0f;
   if (valueShort || valueError) {
     // 異常値は 0 として扱い表示のみ置き換える
     value = 0.0f;
