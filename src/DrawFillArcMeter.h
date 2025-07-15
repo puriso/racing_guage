@@ -38,7 +38,6 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t ACTIVE_COLOR = COLOR_WHITE;      // 現在の値の色
   const uint16_t INACTIVE_COLOR = 0x18E3;         // メーター全体の背景色
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
-  const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
   // 値を範囲内に収める
   float clampedValue = value;

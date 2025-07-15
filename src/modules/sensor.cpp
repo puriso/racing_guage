@@ -34,12 +34,12 @@ constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;       // 273.16 + 25
 constexpr float SERIES_REFERENCE_RES    = 10000.0f;
 
 // ────────────────────── ユーティリティ ──────────────────────
-float convertAdcToVoltage(int16_t rawAdc)
+static float convertAdcToVoltage(int16_t rawAdc)
 {
     return (rawAdc * 6.144f) / 2047.0f;
 }
 
-float convertVoltageToOilPressure(float voltage)
+static float convertVoltageToOilPressure(float voltage)
 {
     // 電源電圧近くまで上昇してもそのまま変換し、
     // 12bar 以上かどうかは呼び出し側で判断する
@@ -48,7 +48,7 @@ float convertVoltageToOilPressure(float voltage)
     return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;
 }
 
-float convertVoltageToTemp(float voltage)
+static float convertVoltageToTemp(float voltage)
 {
     // 電源電圧より高い/等しい電圧は異常値として捨てる
     if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
@@ -66,7 +66,7 @@ float convertVoltageToTemp(float voltage)
 }
 
 // ────────────────────── ADC 読み取り ──────────────────────
-int16_t readAdcWithSettling(uint8_t ch)
+static int16_t readAdcWithSettling(uint8_t ch)
 {
     adsConverter.readADC_SingleEnded(ch);  // ダミー変換
     delayMicroseconds(ADC_SETTLING_US);    // セトリング待ち
