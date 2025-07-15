@@ -40,25 +40,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
   const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
-  // 油圧だったら short(12bar 以上) かどうか、
-  // 温度計だったら 199℃ 以上かどうかをチェックする
-  bool isPressureGauge = strcmp(label, "OIL.P") == 0;
-  bool isTempGauge     = strcmp(unit, "Celsius") == 0;
-  bool valueShort = isPressureGauge && value >= 12.0f;
-  bool valueError = isTempGauge && value >= 199.0f;
-  if (valueShort || valueError) {
-    // 異常値は 0 として扱い表示のみ置き換える
-    value = 0.0f;
-  }
-
   // 値を範囲内に収める
   float clampedValue = value;
   if (clampedValue < minValue)
     clampedValue = minValue;
   else if (clampedValue > maxValue)
     clampedValue = maxValue;
-  // 最大値を更新（範囲外の場合でも最大角度で保持）
-  maxRecordedValue = std::max(clampedValue, maxRecordedValue);
 
   // 初回は全体を描画してキャッシュを初期化
   if (drawStatic || std::isnan(previousValue)) {
@@ -198,14 +185,14 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   char errorLine1[20];
   char errorLine2[8];
   bool isErrorText = false;
-  if (valueShort) {
+  if (unit == "BAR" && value >= 11.0f) {
     // 12bar 以上のショートエラー表示
     // "Short circuit\nError" を表示
     snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
     snprintf(errorLine2, sizeof(errorLine2), "Error");
     isErrorText = true;
   }
-  else if (valueError) {
+  else if (unit == "Celsius" && value >= 199.0f) {
     // 199℃以上は "Disconnection\nError" を表示
     snprintf(errorLine1, sizeof(errorLine1), "Disconnection");
     snprintf(errorLine2, sizeof(errorLine2), "Error");
