@@ -143,7 +143,10 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         drawFpsOverlay();
     }
 
-    mainCanvas.pushSprite(0, 0);
+    // 値が更新されたときのみスプライトを転送する
+    if (oilChanged || pressureChanged || waterChanged) {
+        mainCanvas.pushSprite(0, 0);
+    }
 }
 
 // ────────────────────── メーター描画更新 ──────────────────────
