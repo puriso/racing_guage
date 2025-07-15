@@ -119,6 +119,7 @@ graph TD
 ### ビルド方法
 1. [PlatformIO](https://platformio.org/) をインストール (VS Code 推奨)
 2. `platformio run` でビルドし、`platformio upload` で書き込み
+3. ネットワーク制限環境では `~/.platformio/packages` を事前に配置してください
 
 ---
 
@@ -194,6 +195,7 @@ The temperature sensor is a thermistor; typical resistance values are shown belo
 ### Build Instructions
 1. Install [PlatformIO](https://platformio.org/) (VS Code recommended)
 2. Build with `platformio run` and flash with `platformio upload`
+3. In network restricted environments, pre-populate `~/.platformio/packages`
 
 ---
 
