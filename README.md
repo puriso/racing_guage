@@ -153,7 +153,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 > 💡 The 5V pin can power the CoreS3 or supply external devices. When `M5.Power.setExtOutput(true)` is active, avoid feeding power from another 5V source at the same time.
 > To run from the 5V pin, keep `M5.Power.setExtOutput(false)` so the pin won't output power.
 
-> 📌 Detailed wiring diagrams will be added soon.
+> 📌 A wiring diagram is available in the Japanese section above.
 
 ### Sensor Tables
 
