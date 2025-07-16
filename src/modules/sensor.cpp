@@ -44,6 +44,9 @@ static float convertVoltageToOilPressure(float voltage)
     // 電源電圧近くまで上昇してもそのまま変換し、
     // 12bar 以上かどうかは呼び出し側で判断する
 
+    // 0.4V 未満はセンサー切断とみなし 0 bar とする
+    if (voltage < 0.4f) return 0.0f;
+
     // センサー実測式に基づき圧力へ変換
     return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;
 }
