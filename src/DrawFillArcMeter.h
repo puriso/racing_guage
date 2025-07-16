@@ -184,14 +184,15 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   char errorLine1[20];
   char errorLine2[8];
   bool isErrorText = false;
-  if (unit == "BAR" && value >= 11.0f) {
+  // 文字列比較は strcmp を使用する
+  if (strcmp(unit, "BAR") == 0 && value >= 11.0f) {
     // 12bar 以上のショートエラー表示
     // "Short circuit\nError" を表示
     snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
     snprintf(errorLine2, sizeof(errorLine2), "Error");
     isErrorText = true;
   }
-  else if (unit == "Celsius" && value >= 199.0f) {
+  else if (strcmp(unit, "Celsius") == 0 && value >= 199.0f) {
     // 199℃以上は "Disconnection\nError" を表示
     snprintf(errorLine1, sizeof(errorLine1), "Disconnection");
     snprintf(errorLine2, sizeof(errorLine2), "Error");
