@@ -26,6 +26,7 @@ void setup()
     // 電源管理を初期化し、処理順序を明確にする
     M5.Power.begin();           // まず電源モジュールを初期化
     M5.Power.setExtOutput(false); // 外部給電時は 5V ピン出力を停止
+    M5.Power.setLed(false);       // DC電源使用時はLEDを消灯
 
 
     display.init();
