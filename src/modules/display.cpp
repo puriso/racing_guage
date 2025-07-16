@@ -94,12 +94,12 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
     const int GAUGE_H  = 170;
 
     bool oilChanged = std::isnan(displayCache.oilTemp) ||
-                      fabs(oilTemp - displayCache.oilTemp) > 0.01f ||
+                      fabs(oilTemp - displayCache.oilTemp) > 0.99f ||
                       (maxOilTemp != displayCache.maxOilTemp);
     bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
-                           fabs(pressureAvg - displayCache.pressureAvg) > 0.01f;
+                           fabs(pressureAvg - displayCache.pressureAvg) > 0.09f;
     bool waterChanged    = std::isnan(displayCache.waterTempAvg) ||
-                           fabs(waterTempAvg - displayCache.waterTempAvg) > 0.01f;
+                           fabs(waterTempAvg - displayCache.waterTempAvg) > 0.99f;
 
     mainCanvas.setTextColor(COLOR_WHITE);
 
