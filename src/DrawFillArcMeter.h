@@ -16,6 +16,127 @@ static inline T clampValue(T val, T low, T high) {
   return val;
 }
 
+// ────────────────────── 内部関数群 ──────────────────────
+namespace {
+
+// レッドゾーンの背景を描画
+static void drawRedZone(M5Canvas &canvas, int centerX, int centerY,
+                        int radius, int arcWidth,
+                        float threshold, float minValue, float maxValue) {
+  float start = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
+  canvas.fillArc(centerX, centerY,
+                 radius - arcWidth - 9,
+                 radius - arcWidth - 4,
+                 start, 0,
+                 COLOR_RED);
+}
+
+// 目盛とラベルを描画
+static void drawTicksAndLabels(M5Canvas &canvas, int centerX, int centerY,
+                               int radius, int arcWidth,
+                               float minValue, float maxValue,
+                               float tickStep, float majorTickStep,
+                               float labelStart,
+                               const char *unit, const char *label) {
+  const uint16_t TEXT_COLOR = COLOR_WHITE;
+  const uint16_t BACKGROUND_COLOR = COLOR_BLACK;
+
+  int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
+  for (float i = 0; i <= tickCount - 1; i += 1) {
+    float scaled = minValue + (tickStep * i);
+    float angle = 270 - ((270.0 / (tickCount - 1)) * i);
+    float rad = radians(angle);
+
+    bool isMajorTick;
+    if (majorTickStep < 0) {
+      isMajorTick = (fmod(scaled, 1.0f) == 0.0f);
+    } else {
+      float diff = fmod(scaled - labelStart, majorTickStep);
+      isMajorTick = (scaled >= labelStart) &&
+                    (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
+    }
+
+    int innerR = isMajorTick ? (radius - arcWidth - 10) : (radius - arcWidth - 8);
+    int outerR = isMajorTick ? (radius - arcWidth - 5) : (radius - arcWidth - 7);
+
+    int x1 = centerX + (cos(rad) * innerR);
+    int y1 = centerY - (sin(rad) * innerR);
+    int x2 = centerX + (cos(rad) * outerR);
+    int y2 = centerY - (sin(rad) * outerR);
+
+    canvas.drawLine(x1, y1, x2, y2, COLOR_WHITE);
+
+    if (isMajorTick) {
+      int labelX = centerX + (cos(rad) * (radius - arcWidth - 15));
+      int labelY = centerY - (sin(rad) * (radius - arcWidth - 15));
+
+      char text[6];
+      snprintf(text, sizeof(text), "%.0f", scaled);
+
+      canvas.setTextFont(1);
+      canvas.setFont(&fonts::Font0);
+      canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
+      canvas.setCursor(labelX - (canvas.textWidth(text) / 2), labelY - 4);
+      canvas.print(text);
+    }
+  }
+
+  char combined[30];
+  snprintf(combined, sizeof(combined), "%s / %s", label, unit);
+  canvas.setFont(&fonts::Font0);
+  int labelX = centerX;
+  int labelY = centerY + radius + 15;
+  canvas.setCursor(labelX - (canvas.textWidth(combined) / 2), labelY);
+  canvas.print(combined);
+}
+
+// 値を描画
+static void drawValueText(M5Canvas &canvas, const char *unit, float value,
+                          bool useDecimal, int valueX, int valueY) {
+  const uint16_t BACKGROUND_COLOR = COLOR_BLACK;
+
+  char valueText[10];
+  char errorLine1[20];
+  char errorLine2[8];
+  bool isError = false;
+
+  if (strcmp(unit, "BAR") == 0 && value >= 11.0f) {
+    snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
+    snprintf(errorLine2, sizeof(errorLine2), "Error");
+    isError = true;
+  } else if (strcmp(unit, "Celsius") == 0 && value >= 199.0f) {
+    snprintf(errorLine1, sizeof(errorLine1), "Disconnection");
+    snprintf(errorLine2, sizeof(errorLine2), "Error");
+    isError = true;
+  } else if (useDecimal) {
+    snprintf(valueText, sizeof(valueText), "%.1f", value);
+  } else {
+    snprintf(valueText, sizeof(valueText), "%.0f", round(value));
+  }
+
+  if (isError) {
+    canvas.setFont(&fonts::Font0);
+    int rectH = canvas.fontHeight() * 2 + 4;
+    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() - 2,
+                    75, rectH, BACKGROUND_COLOR);
+    int line1Y = valueY - canvas.fontHeight();
+    canvas.setCursor(valueX - canvas.textWidth(errorLine1), line1Y);
+    canvas.print(errorLine1);
+    int line2Y = line1Y + canvas.fontHeight();
+    canvas.setCursor(valueX - canvas.textWidth(errorLine2), line2Y);
+    canvas.print(errorLine2);
+  } else {
+    canvas.setFont(&FreeSansBold24pt7b);
+    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() / 2 - 2,
+                    75, canvas.fontHeight() + 4, BACKGROUND_COLOR);
+    canvas.setCursor(valueX - canvas.textWidth(valueText),
+                    valueY - (canvas.fontHeight() / 2));
+    canvas.print(valueText);
+  }
+}
+
+} // namespace
+
 void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
                       float &previousValue, // 前回描画した値
@@ -34,20 +155,12 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   const int RADIUS = 70;                           // 半円メーターの半径
   const int ARC_WIDTH = 10;                        // 弧の幅
 
-  const uint16_t BACKGROUND_COLOR = COLOR_BLACK;  // 背景色
   const uint16_t ACTIVE_COLOR = COLOR_WHITE;      // 現在の値の色
   const uint16_t INACTIVE_COLOR = 0x18E3;         // メーター全体の背景色
-  const uint16_t TEXT_COLOR = COLOR_WHITE;        // テキストの色
-  const uint16_t MAX_VALUE_COLOR = COLOR_RED;     // 未使用だが互換のため残置
 
-  // 値を範囲内に収める
-  float clampedValue = value;
-  if (clampedValue < minValue)
-    clampedValue = minValue;
-  else if (clampedValue > maxValue)
-    clampedValue = maxValue;
+  float clampedValue = clampValue(value, minValue, maxValue);
 
-  // 初回は全体を描画してキャッシュを初期化
+  // 初回描画時は背景を生成
   if (drawStatic || std::isnan(previousValue)) {
     canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                    RADIUS - ARC_WIDTH, RADIUS,
@@ -56,46 +169,34 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   }
 
   if (drawStatic) {
-    // レッドゾーンの背景を描画
-    // 背景グレーと 1px の隙間を空け常に赤で表示する
-    float redZoneStartAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
-    canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
-                   RADIUS - ARC_WIDTH - 9,  // 内側半径
-                   RADIUS - ARC_WIDTH - 4,  // 外側半径
-                   redZoneStartAngle, 0,
-                   COLOR_RED);  // レッドゾーンは常に赤表示
+    drawRedZone(canvas, CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                RADIUS, ARC_WIDTH, threshold, minValue, maxValue);
   }
 
-  // 前回値との比較で変更部分のみ更新
   float prevValue = std::isnan(previousValue) ? minValue
                                              : clampValue(previousValue, minValue, maxValue);
   float prevAngle = -270 + ((prevValue - minValue) / (maxValue - minValue) * 270.0);
   float currAngle = -270 + ((clampedValue - minValue) / (maxValue - minValue) * 270.0);
-  float thresholdAngle = -270 + ((threshold - minValue) / (maxValue - minValue) * 270.0);
 
   bool prevOver = prevValue >= threshold;
   bool currOver = clampedValue >= threshold;
 
   if (currOver) {
     if (!prevOver) {
-      // レッドゾーンに入ったのでバー全体を赤く塗り替える
       canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                      RADIUS - ARC_WIDTH, RADIUS,
                      -270, currAngle, overThresholdColor);
     } else if (currAngle > prevAngle) {
-      // 増加分のみ赤で更新
       canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                      RADIUS - ARC_WIDTH, RADIUS,
                      prevAngle, currAngle, overThresholdColor);
     } else if (currAngle < prevAngle) {
-      // 減少分を消去
       canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                      RADIUS - ARC_WIDTH, RADIUS,
                      currAngle, prevAngle, INACTIVE_COLOR);
     }
-  } else {  // 閾値未満
+  } else {
     if (prevOver) {
-      // レッドゾーンから戻ったので白色で描き直す
       canvas.fillArc(CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
                      RADIUS - ARC_WIDTH, RADIUS,
                      -270, currAngle, ACTIVE_COLOR);
@@ -119,119 +220,16 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   previousValue = clampedValue;
 
-
   if (drawStatic) {
-    // 目盛ラベルと目盛り線を描画
-    int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;
-    for (float i = 0; i <= tickCount - 1; i += 1)
-    {
-      float scaledValue = minValue + (tickStep * i);
-      float angle = 270 - ((270.0 / (tickCount - 1)) * i);  // 開始位置のロジックを維持
-      float rad = radians(angle);
-
-      // 主要目盛かどうかを判定（majorTickStep が負なら従来と同じ判定）
-      bool isMajorTick;
-      if (majorTickStep < 0)
-      {
-        isMajorTick = (fmod(scaledValue, 1.0f) == 0.0f);
-      }
-      else
-      {
-        float diff = fmod(scaledValue - labelStart, majorTickStep);
-        isMajorTick = (scaledValue >= labelStart) && (fabsf(diff) < 0.01f || fabsf(diff - majorTickStep) < 0.01f);
-      }
-
-      // 主要目盛は長めの線、細かい目盛は短めの線を描画
-      int innerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 10) : (RADIUS - ARC_WIDTH - 8);
-      int outerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 5)  : (RADIUS - ARC_WIDTH - 7);
-
-      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * innerRadius);
-      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * innerRadius);
-      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * outerRadius);
-      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * outerRadius);
-
-      canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
-
-      bool drawLabel = isMajorTick;
-
-      if (drawLabel)
-      {
-        int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
-        int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
-
-        char labelText[6];
-        snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
-
-        canvas.setTextFont(1);
-        canvas.setFont(&fonts::Font0);
-        canvas.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-        canvas.setCursor(labelX - (canvas.textWidth(labelText) / 2), labelY - 4);
-        canvas.print(labelText);
-      }
-    }
-
-    // 単位とメーター名を表示
-    char combinedLabel[30];
-    snprintf(combinedLabel, sizeof(combinedLabel), "%s / %s", label, unit);
-    canvas.setFont(&fonts::Font0);
-    int labelX = CENTER_X_CORRECTED;
-    int labelY = CENTER_Y_CORRECTED + RADIUS + 15;
-    canvas.setCursor(labelX - (canvas.textWidth(combinedLabel) / 2), labelY);
-    canvas.print(combinedLabel);
+    drawTicksAndLabels(canvas, CENTER_X_CORRECTED, CENTER_Y_CORRECTED,
+                       RADIUS, ARC_WIDTH,
+                       minValue, maxValue,
+                       tickStep, majorTickStep,
+                       labelStart, unit, label);
   }
 
-  // 値を右下に表示
-  char valueText[10];
-  char errorLine1[20];
-  char errorLine2[8];
-  bool isErrorText = false;
-  if (unit == "BAR" && value >= 11.0f) {
-    // 12bar 以上のショートエラー表示
-    // "Short circuit\nError" を表示
-    snprintf(errorLine1, sizeof(errorLine1), "Short circuit");
-    snprintf(errorLine2, sizeof(errorLine2), "Error");
-    isErrorText = true;
-  }
-  else if (unit == "Celsius" && value >= 199.0f) {
-    // 199℃以上は "Disconnection\nError" を表示
-    snprintf(errorLine1, sizeof(errorLine1), "Disconnection");
-    snprintf(errorLine2, sizeof(errorLine2), "Error");
-    isErrorText = true;
-  }
-  else if (useDecimal)
-  {
-    snprintf(valueText, sizeof(valueText), "%.1f", value);
-  }
-  else
-  {
-    snprintf(valueText, sizeof(valueText), "%.0f", round(value));
-  }
-
-  int valueX = VALUE_BASE_X;  // 数字は固定位置に表示
-  int valueY = CENTER_Y_CORRECTED + RADIUS - 20;
-
-  if (isErrorText) {
-    // エラー表示用フォントを小さく設定
-    canvas.setFont(&fonts::Font0);
-    int rectHeight = canvas.fontHeight() * 2 + 4;
-    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() - 2,
-                    75, rectHeight, BACKGROUND_COLOR);
-    int line1Y = valueY - canvas.fontHeight();
-    canvas.setCursor(valueX - canvas.textWidth(errorLine1), line1Y);
-    canvas.print(errorLine1);
-    int line2Y = line1Y + canvas.fontHeight();
-    canvas.setCursor(valueX - canvas.textWidth(errorLine2), line2Y);
-    canvas.print(errorLine2);
-  } else {
-    canvas.setFont(&FreeSansBold24pt7b);
-    // 数字描画領域のみを毎回黒で塗りつぶす
-    canvas.fillRect(valueX - 75, valueY - canvas.fontHeight() / 2 - 2,
-                    75, canvas.fontHeight() + 4, BACKGROUND_COLOR);
-    canvas.setCursor(valueX - canvas.textWidth(valueText),
-                    valueY - (canvas.fontHeight() / 2));
-    canvas.print(valueText);
-  }
-
+  drawValueText(canvas, unit, value, useDecimal,
+                VALUE_BASE_X, CENTER_Y_CORRECTED + RADIUS - 20);
 }
 
 #endif  // DRAW_FILL_ARC_METER_H
