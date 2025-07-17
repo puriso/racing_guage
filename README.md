@@ -23,17 +23,17 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
   - 本リポジトリでは **油圧**・**水温**・**油温** を表示
 - 油温 / 水温 (–40–150 °C) デジタル数値＋バー表示  
 - 各種設定は `include/config.h` の定数で変更可能
-- 水温・油温は500ms間隔で取得し、10サンプル平均を5秒ごとに更新
-- 周囲光センサーによりバックライトを自動調整
+- 水温・油温は500ms間隔で取得し、2サンプル平均を1秒ごとに更新
+- 周囲光センサーによる自動調光（デフォルト無効）
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考 |
 |------------------|----------------------------------|-------------------------|
 | MCU              | **M5Stack CoreS3** (ESP32-S3)    | USB-C, 2.0インチ IPS LCD |
 | ADC              | **ADS1015** 12bit / I²C / 4ch     | アナログ入力 |
-| 圧力センサ       | **PDF00903S** (Defi)              | CH0 / 0.5 – 4.5 V |
-| 温度センサ1      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V |
-| 温度センサ2      | **PDF00703S** (Defi)              | CH2 / 0.5 – 4.5 V |
+| 圧力センサ       | **PDF00903S** (Defi)              | CH2 / 0.5 – 4.5 V |
+| 温度センサ1      | **PDF00703S** (Defi)              | CH0 / 0.5 – 4.5 V |
+| 温度センサ2      | **PDF00703S** (Defi)              | CH1 / 0.5 – 4.5 V |
 | 電源             | 5V                               | CoreS3 USB経由 または 5Vピン |
 
 > 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
@@ -133,17 +133,17 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
   - In this repository, **oil pressure**, **water temperature**, and **oil temperature** are implemented.
 - Digital + bar graph temperature display
 - Most settings are in `include/config.h`
-- Water and oil temperatures are sampled every 500 ms and averaged over 10 samples (updated every 5 seconds)
-- Automatic backlight brightness using the ambient light sensor
+- Water and oil temperatures are sampled every 500 ms and averaged over 2 samples (updated every second)
+- Automatic backlight brightness using the ambient light sensor (disabled by default)
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |
 |------------------|-------------------------------|-------------------------|
 | MCU              | **M5Stack CoreS3** (ESP32-S3)  | 2.0" IPS, USB-C         |
 | ADC              | **ADS1015** 12-bit, I²C, 4ch    | Analog signal input     |
-| Pressure Sensor  | **PDF00903S** (Defi)           | CH0, 0.5–4.5V           |
-| Temp Sensor 1    | **PDF00703S** (Defi)           | CH1, 0.5–4.5V           |
-| Temp Sensor 2    | **PDF00703S** (Defi)           | CH2, 0.5–4.5V           |
+| Pressure Sensor  | **PDF00903S** (Defi)           | CH2, 0.5–4.5V           |
+| Temp Sensor 1    | **PDF00703S** (Defi)           | CH0, 0.5–4.5V           |
+| Temp Sensor 2    | **PDF00703S** (Defi)           | CH1, 0.5–4.5V           |
 | Power Supply     | 5V                             | Powered via USB or 5V pin         |
 
 > 💡 The 5V pin can power the CoreS3 or supply external devices. When `M5.Power.setExtOutput(true)` is active, avoid feeding power from another 5V source at the same time.
