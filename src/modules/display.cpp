@@ -29,8 +29,12 @@ struct DisplayCache
   float waterTempAvg;
   float oilTemp;
   int16_t maxOilTemp;
-} displayCache = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(),
-                  std::numeric_limits<float>::quiet_NaN(), INT16_MIN};
+} displayCache = {
+    std::numeric_limits<float>::quiet_NaN(),  // pressureAvg
+    std::numeric_limits<float>::quiet_NaN(),  // waterTempAvg
+    std::numeric_limits<float>::quiet_NaN(),  // oilTemp
+    INT16_MIN                                // maxOilTemp
+};
 
 // ────────────────────── 油温バー描画 ──────────────────────
 void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
