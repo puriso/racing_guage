@@ -15,7 +15,8 @@ void drawFpsOverlay()
 
     if (!fpsLabelDrawn) {
         // 表示領域を初期化してラベルを描画
-        mainCanvas.fillRect(0, FPS_Y, 80, 16, COLOR_BLACK);
+        // 文字列長に合わせて最小限の横幅でクリアする
+        mainCanvas.fillRect(0, FPS_Y, 50, 16, COLOR_BLACK);
         mainCanvas.setCursor(5, FPS_Y);
         mainCanvas.println("FPS:");
         fpsLabelDrawn = true;
