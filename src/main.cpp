@@ -2,6 +2,7 @@
 
 #include <M5CoreS3.h>
 #include <Wire.h>
+#include <WiFi.h>  // WiFi 無効化用
 
 #include "modules/display.h"
 #include "modules/sensor.h"
@@ -22,6 +23,10 @@ void setup()
 
     M5.begin();
     CoreS3.begin(M5.config());
+
+    // WiFi を完全に停止
+    WiFi.mode(WIFI_OFF);
+    WiFi.disconnect(true);
 
     // 電源管理を初期化し、処理順序を明確にする
     M5.Power.begin();           // まず電源モジュールを初期化
@@ -45,8 +50,8 @@ void setup()
     M5.Lcd.clear();
     M5.Lcd.fillScreen(COLOR_BLACK);
 
-    M5.Speaker.begin();
-    M5.Imu.begin();
+    // M5.Speaker.begin();  // スピーカーを使用しないため無効化
+    // M5.Imu.begin();      // IMU を使用しないため無効化
     btStop();
 
     pinMode(9, INPUT_PULLUP);

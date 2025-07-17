@@ -12,7 +12,7 @@ constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;
 constexpr bool SENSOR_WATER_TEMP_PRESENT    = true;
 // 油温センサーを使用するかどうか
 constexpr bool SENSOR_OIL_TEMP_PRESENT      = true;
-constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = true;
+constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = false; // ALS を無効化
 
 // ── 色設定 (16 bit) ──
 // RGB888 から 565 形式へ変換する constexpr 関数
