@@ -8,9 +8,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 * **Oil Pressure** via **Defi PDF00903S** (0 – 9.9 bar, 0.5 – 4.5 V)
 * **Oil / Water Temperature** via **Defi PDF00703S** (–40 – 150 °C, 0.5 – 4.5 V)  
 
-
 <img src="https://github.com/user-attachments/assets/d3a8bfdc-0bba-4519-b64a-f31a1ec9a9f4" width="640px">
-
 
 ---
 
@@ -40,7 +38,6 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 
 > 💡 5Vピンは入力(給電)と外部機器への出力の両方に利用できます。`M5.Power.setExtOutput(true)`で出力を有効化した状態では、外部から同時に給電しないでください。
 > 5Vピンから給電する場合は `M5.Power.setExtOutput(false)` として出力を無効にします。
-
 
 ### 配線図 / Wiring Diagram
 
@@ -78,7 +75,6 @@ graph TD
     end
     OilP -- CH2 --> ADS
 ```
-
 
 ### センサー対応表
 

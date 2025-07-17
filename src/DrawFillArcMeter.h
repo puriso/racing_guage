@@ -118,7 +118,6 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
   previousValue = clampedValue;
 
-
   if (drawStatic) {
     // 目盛ラベルと目盛り線を描画
     int tickCount = static_cast<int>((maxValue - minValue) / tickStep) + 1;

@@ -27,7 +27,6 @@ void setup()
     M5.Power.begin();           // まず電源モジュールを初期化
     M5.Power.setExtOutput(false); // 外部給電時は 5V ピン出力を停止
 
-
     display.init();
     // DMA を初期化
     display.initDMA();
