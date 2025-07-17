@@ -5,7 +5,7 @@
 
 // ────────────────────── 設定 ──────────────────────
 // デバッグモードを有効にするかどうか
-constexpr bool DEBUG_MODE_ENABLED = false;
+constexpr bool DEBUG_MODE_ENABLED = true;
 
 // ── センサー接続可否（false にするとその項目は常に 0 表示） ──
 constexpr bool SENSOR_OIL_PRESSURE_PRESENT  = true;

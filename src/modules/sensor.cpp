@@ -111,6 +111,7 @@ void acquireSensorData()
     } else {
         oilPressureSamples[oilPressureSampleIndex] = 0.0f;
     }
+    Serial.printf("Oil Pressure: %.2f bar\n", oilPressureSamples[oilPressureSampleIndex]);
     oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
 
     // 水温
