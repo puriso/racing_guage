@@ -12,14 +12,15 @@ bool drawFpsOverlay()
     mainCanvas.setFont(&fonts::Font0);
     mainCanvas.setTextSize(0);
 
-    // ラベルは画面下部の表示と被らないよう少し上へ移動
-    constexpr int FPS_Y = LCD_HEIGHT - 32;  // もとの表示より16px上
+    // ラベルがメーターに重ならないよう画面最下部へ配置
+    constexpr int FPS_Y = LCD_HEIGHT - 16;  // 下端に合わせる
 
     unsigned long now = millis();
 
     if (!fpsLabelDrawn) {
         // 表示領域を初期化してラベルを描画
-        mainCanvas.fillRect(0, FPS_Y, 80, 16, COLOR_BLACK);
+        // 文字列長に合わせて最小限の横幅でクリアする
+        mainCanvas.fillRect(0, FPS_Y, 50, 16, COLOR_BLACK);
         mainCanvas.setCursor(5, FPS_Y);
         mainCanvas.println("FPS:");
         fpsLabelDrawn = true;
