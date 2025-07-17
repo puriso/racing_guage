@@ -67,7 +67,7 @@ constexpr uint8_t ADC_CH_OIL_TEMP     = 0;
 
 // サンプリング数設定
 constexpr int PRESSURE_SAMPLE_SIZE   = 5;
-constexpr int WATER_TEMP_SAMPLE_SIZE = 2;  // 500ms間隔×10サンプルで約5秒平均
-constexpr int OIL_TEMP_SAMPLE_SIZE   = 2;  // 500ms間隔×10サンプルで約5秒平均
+constexpr int WATER_TEMP_SAMPLE_SIZE = 2;  // 500ms間隔×2サンプルで約1秒平均
+constexpr int OIL_TEMP_SAMPLE_SIZE   = 2;  // 500ms間隔×2サンプルで約1秒平均
 
 #endif // CONFIG_H
