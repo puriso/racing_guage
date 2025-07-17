@@ -139,12 +139,10 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         displayCache.waterTempAvg = waterTempAvg;
     }
 
-    if (DEBUG_MODE_ENABLED) {
-        drawFpsOverlay();
-    }
+    bool fpsChanged = drawFpsOverlay();
 
     // 値が更新されたときのみスプライトを転送する
-    if (oilChanged || pressureChanged || waterChanged) {
+    if (oilChanged || pressureChanged || waterChanged || fpsChanged) {
         mainCanvas.pushSprite(0, 0);
     }
 }
