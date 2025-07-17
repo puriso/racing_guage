@@ -10,8 +10,8 @@ void drawFpsOverlay()
     mainCanvas.setFont(&fonts::Font0);
     mainCanvas.setTextSize(0);
 
-    // ラベルは画面下部の表示と被らないよう少し上へ移動
-    constexpr int FPS_Y = LCD_HEIGHT - 32;  // もとの表示より16px上
+    // ラベルがメーターに重ならないよう画面最下部へ配置
+    constexpr int FPS_Y = LCD_HEIGHT - 16;  // 下端に合わせる
 
     if (!fpsLabelDrawn) {
         // 表示領域を初期化してラベルを描画
