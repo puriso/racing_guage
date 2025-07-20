@@ -151,21 +151,26 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 // ────────────────────── メーター描画更新 ──────────────────────
 void updateGauges()
 {
-    static float smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
-    static float smoothOilTemp   = std::numeric_limits<float>::quiet_NaN();
+    static float smoothWaterTemp   = std::numeric_limits<float>::quiet_NaN();
+    static float smoothOilTemp     = std::numeric_limits<float>::quiet_NaN();
+    static float smoothOilPressure = std::numeric_limits<float>::quiet_NaN();
 
     float pressureAvg     = calculateAverage(oilPressureSamples);
     pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
     float targetWaterTemp = calculateAverage(waterTemperatureSamples);
     float targetOilTemp   = calculateAverage(oilTemperatureSamples);
 
-    if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
-    if (std::isnan(smoothOilTemp))   smoothOilTemp   = targetOilTemp;
+    if (std::isnan(smoothWaterTemp))   smoothWaterTemp   = targetWaterTemp;
+    if (std::isnan(smoothOilTemp))     smoothOilTemp     = targetOilTemp;
+    if (std::isnan(smoothOilPressure)) smoothOilPressure = pressureAvg;
 
-    smoothWaterTemp += 0.1f * (targetWaterTemp - smoothWaterTemp);
-    smoothOilTemp   += 0.1f * (targetOilTemp   - smoothOilTemp);
+    smoothWaterTemp   += 0.1f * (targetWaterTemp - smoothWaterTemp);
+    smoothOilTemp     += 0.1f * (targetOilTemp   - smoothOilTemp);
+    smoothOilPressure +=
+        OIL_PRESSURE_SMOOTHING_ALPHA * (pressureAvg - smoothOilPressure);
 
-    float oilTempValue = smoothOilTemp;
+    float oilTempValue  = smoothOilTemp;
+    float pressureValue = smoothOilPressure;
     if (!SENSOR_OIL_TEMP_PRESENT) {
         // センサーが無い場合は常に 0 表示
         oilTempValue = 0.0f;
@@ -178,6 +183,6 @@ void updateGauges()
         recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
     }
 
-    renderDisplayAndLog(pressureAvg, smoothWaterTemp,
+    renderDisplayAndLog(pressureValue, smoothWaterTemp,
                         oilTempValue, recordedMaxOilTempTop);
 }

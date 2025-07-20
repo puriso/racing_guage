@@ -37,6 +37,9 @@ constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
 constexpr float MAX_OIL_PRESSURE_METER   = 10.0f;
 // 0.25bar 以下なら接続エラーとして扱う閾値
 constexpr float OIL_PRESSURE_DISCONNECT_THRESHOLD = 0.25f;
+// 油圧の平滑化係数
+// レスポンス向上のため平滑化係数を大きめに
+constexpr float OIL_PRESSURE_SMOOTHING_ALPHA = 0.3f;
 
 // ── 水温メーター設定 ──
 // 水温メーター下限と上限を80℃〜105℃に設定
