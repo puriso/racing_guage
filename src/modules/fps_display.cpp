@@ -4,7 +4,7 @@
 
 // FPSラベルが描画済みかどうかを保持
 static bool fpsLabelDrawn = false;
-static unsigned long previousFpsDrawTime = 0;
+static unsigned long lastFpsDrawTime = 0;
 
 // ────────────────────── FPS表示 ──────────────────────
 bool drawFpsOverlay()
@@ -21,15 +21,15 @@ bool drawFpsOverlay()
         mainCanvas.setCursor(5, FPS_Y);
         mainCanvas.println("FPS:");
         fpsLabelDrawn = true;
-        previousFpsDrawTime = 0; // 初回はすぐ更新するため0に設定
+        lastFpsDrawTime = 0; // 初回はすぐ更新するため0に設定
     }
 
-    if (now - previousFpsDrawTime >= 1000UL) {
+    if (now - lastFpsDrawTime >= 1000UL) {
         // 数値表示部のみ塗り直して更新
         mainCanvas.fillRect(5, FPS_Y + 8, 30, 8, COLOR_BLACK);
         mainCanvas.setCursor(5, FPS_Y + 8);
         mainCanvas.printf("%d", currentFramesPerSecond);
-        previousFpsDrawTime = now;
+        lastFpsDrawTime = now;
         return true;
     }
     return false;

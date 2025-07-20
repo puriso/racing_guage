@@ -24,7 +24,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
                       int x, int y,
                       bool drawStatic,
                       float majorTickStep = -1.0f, // 数字を表示する目盛間隔（負なら旧仕様）
-                      float labelStart    = 0.0f)  // ラベル描画を開始する値
+                      float labelStart = 0.0f)  // ラベル描画を開始する値
 {
   // 左端を 1px 固定しつつ数値表示位置は従来通りに保つ
   const int GAUGE_LEFT = x + 1;                    // 円メーターの左端

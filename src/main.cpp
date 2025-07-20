@@ -8,13 +8,10 @@
 #include "modules/sensor.h"
 #include "modules/backlight.h"
 
-// ── LTR553 初期設定 ──
-Ltr5xx_Init_Basic_Para ltr553InitParams = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
-
 // ── FPS 計測用 ──
-unsigned long previousFpsTimestamp   = 0;
-int           frameCounterPerSecond  = 0;
-int           currentFramesPerSecond = 0;
+unsigned long lastFpsTimestamp = 0;  // 直近1秒判定用
+int frameCounterPerSecond = 0;
+int currentFramesPerSecond = 0;
 
 // ────────────────────── setup() ──────────────────────
 void setup()
@@ -65,9 +62,10 @@ void setup()
 
     if (SENSOR_AMBIENT_LIGHT_PRESENT) {
         // ALS のゲインと積分時間を設定してから初期化
-        ltr553InitParams.als_gain             = LTR5XX_ALS_GAIN_48X;
-        ltr553InitParams.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
-        CoreS3.Ltr553.begin(&ltr553InitParams);
+        Ltr5xx_Init_Basic_Para ltr553Params = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
+        ltr553Params.als_gain = LTR5XX_ALS_GAIN_48X;
+        ltr553Params.als_integration_time = LTR5XX_ALS_INTEGRATION_TIME_300MS;
+        CoreS3.Ltr553.begin(&ltr553Params);
         CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
     }
 }
@@ -75,23 +73,23 @@ void setup()
 // ────────────────────── loop() ──────────────────────
 void loop()
 {
-    static unsigned long previousAlsSampleTime = 0;
+    static unsigned long lastAlsSampleTime = 0;
     unsigned long now = millis();
 
-    if (now - previousAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
+    if (now - lastAlsSampleTime >= ALS_MEASUREMENT_INTERVAL_MS) {
         updateBacklightLevel();
-        previousAlsSampleTime = now;
+        lastAlsSampleTime = now;
     }
 
     acquireSensorData();
     updateGauges();
 
     frameCounterPerSecond++;
-    if (now - previousFpsTimestamp >= 1000UL) {
+    if (now - lastFpsTimestamp >= 1000UL) {
         currentFramesPerSecond = frameCounterPerSecond;
         if (DEBUG_MODE_ENABLED)
             Serial.printf("FPS:%d\n", currentFramesPerSecond);
         frameCounterPerSecond = 0;
-        previousFpsTimestamp  = now;
+        lastFpsTimestamp = now;
     }
 }

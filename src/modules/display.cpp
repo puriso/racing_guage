@@ -34,8 +34,8 @@ struct DisplayCache {
 // ────────────────────── 油温バー描画 ──────────────────────
 void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 {
-    constexpr int MIN_TEMP   =  80;
-    constexpr int MAX_TEMP   = 130;
+    constexpr int MIN_TEMP = 80;
+    constexpr int MAX_TEMP = 130;
     constexpr int ALERT_TEMP = 120;
 
     constexpr int X = 20, Y = 15, W = 210, H = 20;
@@ -91,7 +91,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                          float oilTemp, int16_t maxOilTemp)
 {
     const int TOPBAR_Y = 0, TOPBAR_H = 50;
-    const int GAUGE_H  = 170;
+    const int GAUGE_H = 170;
 
     // 温度は0.1度以上、油圧は0.05以上変化したら更新する
     bool oilChanged = std::isnan(displayCache.oilTemp) ||
@@ -99,8 +99,8 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
                       (maxOilTemp != displayCache.maxOilTemp);
     bool pressureChanged = std::isnan(displayCache.pressureAvg) ||
                            fabs(pressureAvg - displayCache.pressureAvg) >= 0.05f;
-    bool waterChanged    = std::isnan(displayCache.waterTempAvg) ||
-                           fabs(waterTempAvg - displayCache.waterTempAvg) >= 0.1f;
+    bool waterChanged = std::isnan(displayCache.waterTempAvg) ||
+                       fabs(waterTempAvg - displayCache.waterTempAvg) >= 0.1f;
 
     mainCanvas.setTextColor(COLOR_WHITE);
 
@@ -108,7 +108,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
         mainCanvas.fillRect(0, TOPBAR_Y, LCD_WIDTH, TOPBAR_H, COLOR_BLACK);
         if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
         drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
-        displayCache.oilTemp    = oilTemp;
+        displayCache.oilTemp = oilTemp;
         displayCache.maxOilTemp = maxOilTemp;
     }
 
@@ -151,25 +151,25 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg,
 // ────────────────────── メーター描画更新 ──────────────────────
 void updateGauges()
 {
-    static float smoothWaterTemp   = std::numeric_limits<float>::quiet_NaN();
-    static float smoothOilTemp     = std::numeric_limits<float>::quiet_NaN();
+    static float smoothWaterTemp = std::numeric_limits<float>::quiet_NaN();
+    static float smoothOilTemp = std::numeric_limits<float>::quiet_NaN();
     static float smoothOilPressure = std::numeric_limits<float>::quiet_NaN();
 
-    float pressureAvg     = calculateAverage(oilPressureSamples);
+    float pressureAvg = calculateAverage(oilPressureSamples);
     pressureAvg = std::min(pressureAvg, MAX_OIL_PRESSURE_DISPLAY);
     float targetWaterTemp = calculateAverage(waterTemperatureSamples);
-    float targetOilTemp   = calculateAverage(oilTemperatureSamples);
+    float targetOilTemp = calculateAverage(oilTemperatureSamples);
 
-    if (std::isnan(smoothWaterTemp))   smoothWaterTemp   = targetWaterTemp;
-    if (std::isnan(smoothOilTemp))     smoothOilTemp     = targetOilTemp;
+    if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
+    if (std::isnan(smoothOilTemp)) smoothOilTemp = targetOilTemp;
     if (std::isnan(smoothOilPressure)) smoothOilPressure = pressureAvg;
 
-    smoothWaterTemp   += 0.1f * (targetWaterTemp - smoothWaterTemp);
-    smoothOilTemp     += 0.1f * (targetOilTemp   - smoothOilTemp);
+    smoothWaterTemp += 0.1f * (targetWaterTemp - smoothWaterTemp);
+    smoothOilTemp += 0.1f * (targetOilTemp - smoothOilTemp);
     smoothOilPressure +=
         OIL_PRESSURE_SMOOTHING_ALPHA * (pressureAvg - smoothOilPressure);
 
-    float oilTempValue  = smoothOilTemp;
+    float oilTempValue = smoothOilTemp;
     float pressureValue = smoothOilPressure;
     if (!SENSOR_OIL_TEMP_PRESENT) {
         // センサーが無い場合は常に 0 表示
@@ -178,7 +178,7 @@ void updateGauges()
 
     recordedMaxOilPressure =
         std::max(recordedMaxOilPressure, pressureAvg);
-    recordedMaxWaterTemp   = std::max(recordedMaxWaterTemp, smoothWaterTemp);
+    recordedMaxWaterTemp = std::max(recordedMaxWaterTemp, smoothWaterTemp);
     if (targetOilTemp < 199.0f) {
         recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
     }

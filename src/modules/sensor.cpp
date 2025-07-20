@@ -10,14 +10,13 @@ Adafruit_ADS1015 adsConverter;
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE] = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE] = {};
 float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE] = {};
-
-static int oilPressureSampleIndex = 0;
-static int waterTemperatureSampleIndex = 0;
-static int oilTemperatureSampleIndex = 0;
+static int oilPressureIdx = 0;
+static int waterTempIdx = 0;
+static int oilTempIdx = 0;
 
 // 最初の水温・油温取得かどうかのフラグ
-static bool waterTempFirstSample = true;
-static bool oilTempFirstSample   = true;
+static bool waterTempFirst = true;
+static bool oilTempFirst = true;
 
 // ADC セトリング待ち時間 [us]
 constexpr uint16_t ADC_SETTLING_US = 50;
@@ -27,11 +26,11 @@ constexpr uint16_t ADC_SETTLING_US = 50;
 constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
 
 // ────────────────────── 変換定数 ──────────────────────
-constexpr float SUPPLY_VOLTAGE          = 5.0f;
-constexpr float THERMISTOR_R25          = 10000.0f;
-constexpr float THERMISTOR_B_CONSTANT   = 3380.0f;
+constexpr float SUPPLY_VOLTAGE = 5.0f;
+constexpr float THERMISTOR_R25 = 10000.0f;
+constexpr float THERMISTOR_B_CONSTANT = 3380.0f;
 constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;       // 273.16 + 25
-constexpr float SERIES_REFERENCE_RES    = 10000.0f;
+constexpr float SERIES_REFERENCE_RES = 10000.0f;
 
 // ────────────────────── ユーティリティ ──────────────────────
 static float convertAdcToVoltage(int16_t rawAdc)
@@ -99,38 +98,40 @@ static void updateSampleBuffer(float value, float (&buffer)[N], int &index, bool
 // ────────────────────── センサ取得 ──────────────────────
 void acquireSensorData()
 {
-    static unsigned long previousWaterTempSampleTime = 0;
-    static unsigned long previousOilTempSampleTime = 0;
+    static unsigned long lastWaterTempSampleTime = 0;
+    static unsigned long lastOilTempSampleTime = 0;
     unsigned long now = millis();
 
     // 油圧
     if (SENSOR_OIL_PRESSURE_PRESENT) {
-        int16_t raw = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
-        oilPressureSamples[oilPressureSampleIndex] =
-            convertVoltageToOilPressure(convertAdcToVoltage(raw));
+        int16_t rawAdc = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
+        float pressureValue =
+            convertVoltageToOilPressure(convertAdcToVoltage(rawAdc));
+        oilPressureSamples[oilPressureIdx] = pressureValue;
+        Serial.printf("Oil Pressure: %.2f bar\n", pressureValue);
     } else {
-        oilPressureSamples[oilPressureSampleIndex] = 0.0f;
+        oilPressureSamples[oilPressureIdx] = 0.0f;
+        Serial.println("Oil Pressure: 0.00 bar");
     }
-    Serial.printf("Oil Pressure: %.2f bar\n", oilPressureSamples[oilPressureSampleIndex]);
-    oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
+    oilPressureIdx = (oilPressureIdx + 1) % PRESSURE_SAMPLE_SIZE;
 
     // 水温
-    if (now - previousWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+    if (now - lastWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
         float value = SENSOR_WATER_TEMP_PRESENT
                           ? readTemperatureChannel(ADC_CH_WATER_TEMP)
                           : 0.0f;
         updateSampleBuffer(value, waterTemperatureSamples,
-                          waterTemperatureSampleIndex, waterTempFirstSample);
-        previousWaterTempSampleTime = now;
+                          waterTempIdx, waterTempFirst);
+        lastWaterTempSampleTime = now;
     }
 
     // 油温
-    if (now - previousOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
+    if (now - lastOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS) {
         float value = SENSOR_OIL_TEMP_PRESENT
                           ? readTemperatureChannel(ADC_CH_OIL_TEMP)
                           : 0.0f;
         updateSampleBuffer(value, oilTemperatureSamples,
-                          oilTemperatureSampleIndex, oilTempFirstSample);
-        previousOilTempSampleTime = now;
+                          oilTempIdx, oilTempFirst);
+        lastOilTempSampleTime = now;
     }
 }
