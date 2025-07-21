@@ -69,6 +69,9 @@ void setup()
     CoreS3.Ltr553.begin(&ltr553Params);
     CoreS3.Ltr553.setAlsMode(LTR5XX_ALS_ACTIVE_MODE);
   }
+
+  // 起動時に油圧メーターを煽るアニメーションを実行
+  runStartupPressureSweep();
 }
 
 // ────────────────────── loop() ──────────────────────
