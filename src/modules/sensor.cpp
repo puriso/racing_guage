@@ -101,7 +101,63 @@ void acquireSensorData()
 {
     static unsigned long previousWaterTempSampleTime = 0;
     static unsigned long previousOilTempSampleTime = 0;
+#if DEMO_MODE_ENABLED
+    static bool demoActive        = true;   // デモ用センサ値生成フラグ
+    static unsigned long dbgStart = 0;      // 初期化時刻
+    static unsigned long dbgTick  = 0;      // インクリメントタイマ
+    static bool throttlePhase     = true;   // アクセル吹かしフェーズ
+    static float dbgOilPressure   = 0.0f;   // デバッグ油圧
+    static float dbgWaterTemp     = 20.0f;  // デバッグ水温
+    static float dbgOilTemp       = 20.0f;  // デバッグ油温
+#endif
     unsigned long now = millis();
+
+#if DEMO_MODE_ENABLED
+    // デモモード用のスタブ値生成
+    if (demoActive) {
+        if (dbgStart == 0) {
+            dbgStart = now;
+            dbgTick  = now;
+        }
+
+        if (throttlePhase) {
+            // 最初の1秒はアクセルを吹かした時を想定し油圧を高くする
+            if (now - dbgStart < 1000) {
+                dbgOilPressure = 8.0f;
+            } else {
+                throttlePhase = false;
+                dbgOilPressure = 0.0f;
+                dbgTick = now;
+            }
+        } else {
+            // 1秒ごとに油圧+1、水温・油温+10
+            if (now - dbgTick >= 1000) {
+                if (dbgOilPressure < 12.0f)
+                    dbgOilPressure += 1.0f;
+                dbgWaterTemp += 10.0f;
+                dbgOilTemp   += 10.0f;
+                dbgTick = now;
+            }
+        }
+
+        oilPressureSamples[oilPressureSampleIndex] = dbgOilPressure;
+        updateSampleBuffer(dbgWaterTemp, waterTemperatureSamples,
+                           waterTemperatureSampleIndex, waterTempFirstSample);
+        updateSampleBuffer(dbgOilTemp, oilTemperatureSamples,
+                           oilTemperatureSampleIndex, oilTempFirstSample);
+
+        // 閾値を超えたらデモを終了
+        if (dbgOilPressure >= 12.0f || dbgWaterTemp >= 130.0f || dbgOilTemp >= 130.0f) {
+            demoActive = false;
+        }
+
+        Serial.printf("[DEMO] OilP:%.2f WaterT:%.1f OilT:%.1f\n", dbgOilPressure,
+                      dbgWaterTemp, dbgOilTemp);
+
+        oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
+        return;
+    }
+#endif
 
     // 油圧
     if (SENSOR_OIL_PRESSURE_PRESENT) {
