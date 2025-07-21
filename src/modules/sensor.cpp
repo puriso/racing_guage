@@ -101,7 +101,7 @@ void acquireSensorData()
 {
     static unsigned long previousWaterTempSampleTime = 0;
     static unsigned long previousOilTempSampleTime = 0;
-#if DEMO_MODE_ENABLED
+    // デモモード用の変数
     static bool demoActive        = true;   // デモ用センサ値生成フラグ
     static unsigned long dbgStart = 0;      // 初期化時刻
     static unsigned long dbgTick  = 0;      // インクリメントタイマ
@@ -109,12 +109,9 @@ void acquireSensorData()
     static float dbgOilPressure   = 0.0f;   // デバッグ油圧
     static float dbgWaterTemp     = 20.0f;  // デバッグ水温
     static float dbgOilTemp       = 20.0f;  // デバッグ油温
-#endif
     unsigned long now = millis();
 
-#if DEMO_MODE_ENABLED
-    // デモモード用のスタブ値生成
-    if (demoActive) {
+    if (DEMO_MODE_ENABLED && demoActive) {
         if (dbgStart == 0) {
             dbgStart = now;
             dbgTick  = now;
@@ -157,7 +154,6 @@ void acquireSensorData()
         oilPressureSampleIndex = (oilPressureSampleIndex + 1) % PRESSURE_SAMPLE_SIZE;
         return;
     }
-#endif
 
     // 油圧
     if (SENSOR_OIL_PRESSURE_PRESENT) {
