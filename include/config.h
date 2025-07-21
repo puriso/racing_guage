@@ -19,8 +19,8 @@ constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = false; // ALS を無効化
 constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 {
   return (static_cast<uint16_t>(r & 0xF8) << 8)
-       | (static_cast<uint16_t>(g & 0xFC) << 3)
-       | (static_cast<uint16_t>(b) >> 3);
+     | (static_cast<uint16_t>(g & 0xFC) << 3)
+     | (static_cast<uint16_t>(b) >> 3);
 }
 
 constexpr uint16_t COLOR_WHITE = rgb565(255, 255, 255);
