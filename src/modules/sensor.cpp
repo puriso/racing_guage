@@ -109,12 +109,10 @@ void acquireSensorData()
     int16_t rawAdc = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
     float pressureValue = convertVoltageToOilPressure(convertAdcToVoltage(rawAdc));
     oilPressureSamples[oilPressureIndex] = pressureValue;
-    Serial.printf("Oil Pressure: %.2f bar\n", pressureValue);
   }
   else
   {
     oilPressureSamples[oilPressureIndex] = 0.0f;
-    Serial.println("Oil Pressure: 0.00 bar");
   }
   oilPressureIndex = (oilPressureIndex + 1) % PRESSURE_SAMPLE_SIZE;
 
