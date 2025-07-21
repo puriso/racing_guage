@@ -118,9 +118,9 @@ void acquireSensorData()
         }
 
         if (throttlePhase) {
-            // 最初の1秒はアクセルを吹かした時を想定し油圧を高くする
-            if (now - dbgStart < 1000) {
-                dbgOilPressure = 8.0f;
+            // 最初の2秒はアクセルを吹かした時を想定し油圧を高くする
+            if (now - dbgStart < 2000) {
+                dbgOilPressure = 8.1f;
             } else {
                 throttlePhase = false;
                 dbgOilPressure = 0.0f;
