@@ -36,6 +36,8 @@ constexpr int DISPLAY_COLOR_DEPTH = 16;
 constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
 // メーター目盛の上限
 constexpr float MAX_OIL_PRESSURE_METER = 10.0f;
+// 0.1bar 未満は0として表示する
+constexpr float MIN_OIL_PRESSURE_DISPLAY = 0.1f;
 // 0.25bar 以下なら接続エラーとして扱う閾値
 constexpr float OIL_PRESSURE_DISCONNECT_THRESHOLD = 0.25f;
 // 油圧の平滑化係数
