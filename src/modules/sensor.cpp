@@ -10,8 +10,11 @@
 Adafruit_ADS1015 adsConverter;
 
 float oilPressureSamples[PRESSURE_SAMPLE_SIZE] = {};
+float oilPressureVoltageSamples[PRESSURE_SAMPLE_SIZE] = {};
 float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE] = {};
+float waterTempVoltageSamples[WATER_TEMP_SAMPLE_SIZE] = {};
 float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE] = {};
+float oilTempVoltageSamples[OIL_TEMP_SAMPLE_SIZE] = {};
 static int oilPressureIndex = 0;
 static int waterTempIndex = 0;
 static int oilTempIndex = 0;
@@ -78,24 +81,6 @@ static float readTemperatureChannel(uint8_t ch)
   return convertVoltageToTemp(convertAdcToVoltage(raw));
 }
 
-// ────────────────────── サンプルバッファ更新 ──────────────────────
-// 初回は全要素を同じ値で埋め、その後はリングバッファ更新
-template <size_t N>
-static void updateSampleBuffer(float value, float (&buffer)[N], int &index, bool &first)
-{
-  if (first)
-  {
-    for (float &v : buffer) v = value;
-    index = 1 % N;  // 初期化後は 1 番目から開始
-    first = false;
-  }
-  else
-  {
-    buffer[index] = value;
-    index = (index + 1) % N;
-  }
-}
-
 // ────────────────────── センサ取得 ──────────────────────
 void acquireSensorData()
 {
@@ -107,28 +92,57 @@ void acquireSensorData()
   if (SENSOR_OIL_PRESSURE_PRESENT)
   {
     int16_t rawAdc = readAdcWithSettling(ADC_CH_OIL_PRESSURE);  // CH1: 油圧
-    float pressureValue = convertVoltageToOilPressure(convertAdcToVoltage(rawAdc));
+    float voltage = convertAdcToVoltage(rawAdc);
+    float pressureValue = convertVoltageToOilPressure(voltage);
     oilPressureSamples[oilPressureIndex] = pressureValue;
+    oilPressureVoltageSamples[oilPressureIndex] = voltage;
   }
   else
   {
     oilPressureSamples[oilPressureIndex] = 0.0f;
+    oilPressureVoltageSamples[oilPressureIndex] = 0.0f;
   }
   oilPressureIndex = (oilPressureIndex + 1) % PRESSURE_SAMPLE_SIZE;
 
   // 水温
   if (now - lastWaterTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS)
   {
-    float value = SENSOR_WATER_TEMP_PRESENT ? readTemperatureChannel(ADC_CH_WATER_TEMP) : 0.0f;
-    updateSampleBuffer(value, waterTemperatureSamples, waterTempIndex, isFirstWaterTempSample);
+    float voltage = SENSOR_WATER_TEMP_PRESENT ? convertAdcToVoltage(readAdcWithSettling(ADC_CH_WATER_TEMP)) : 0.0f;
+    float value = SENSOR_WATER_TEMP_PRESENT ? convertVoltageToTemp(voltage) : 0.0f;
+    if (isFirstWaterTempSample)
+    {
+      for (float &v : waterTemperatureSamples) v = value;
+      for (float &v : waterTempVoltageSamples) v = voltage;
+      waterTempIndex = 1 % WATER_TEMP_SAMPLE_SIZE;
+      isFirstWaterTempSample = false;
+    }
+    else
+    {
+      waterTemperatureSamples[waterTempIndex] = value;
+      waterTempVoltageSamples[waterTempIndex] = voltage;
+      waterTempIndex = (waterTempIndex + 1) % WATER_TEMP_SAMPLE_SIZE;
+    }
     lastWaterTempSampleTime = now;
   }
 
   // 油温
   if (now - lastOilTempSampleTime >= TEMP_SAMPLE_INTERVAL_MS)
   {
-    float value = SENSOR_OIL_TEMP_PRESENT ? readTemperatureChannel(ADC_CH_OIL_TEMP) : 0.0f;
-    updateSampleBuffer(value, oilTemperatureSamples, oilTempIndex, isFirstOilTempSample);
+    float voltage = SENSOR_OIL_TEMP_PRESENT ? convertAdcToVoltage(readAdcWithSettling(ADC_CH_OIL_TEMP)) : 0.0f;
+    float value = SENSOR_OIL_TEMP_PRESENT ? convertVoltageToTemp(voltage) : 0.0f;
+    if (isFirstOilTempSample)
+    {
+      for (float &v : oilTemperatureSamples) v = value;
+      for (float &v : oilTempVoltageSamples) v = voltage;
+      oilTempIndex = 1 % OIL_TEMP_SAMPLE_SIZE;
+      isFirstOilTempSample = false;
+    }
+    else
+    {
+      oilTemperatureSamples[oilTempIndex] = value;
+      oilTempVoltageSamples[oilTempIndex] = voltage;
+      oilTempIndex = (oilTempIndex + 1) % OIL_TEMP_SAMPLE_SIZE;
+    }
     lastOilTempSampleTime = now;
   }
 }
