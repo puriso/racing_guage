@@ -9,11 +9,8 @@
 extern Adafruit_ADS1015 adsConverter;
 
 extern float oilPressureSamples[PRESSURE_SAMPLE_SIZE];
-extern float oilPressureVoltageSamples[PRESSURE_SAMPLE_SIZE];
 extern float waterTemperatureSamples[WATER_TEMP_SAMPLE_SIZE];
-extern float waterTempVoltageSamples[WATER_TEMP_SAMPLE_SIZE];
 extern float oilTemperatureSamples[OIL_TEMP_SAMPLE_SIZE];
-extern float oilTempVoltageSamples[OIL_TEMP_SAMPLE_SIZE];
 
 void acquireSensorData();
 
