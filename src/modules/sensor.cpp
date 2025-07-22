@@ -103,62 +103,62 @@ void acquireSensorData()
   static unsigned long lastOilTempSampleTime = 0;
 
   // デモモード用の変数
-  static bool demoActive = true;       // デモセンサ値生成を継続するか
-  static unsigned long dbgStart = 0;   // 初期時刻
-  static unsigned long dbgTick = 0;    // インクリメント用タイマ
-  static bool throttlePhase = true;    // アクセル吹かしフェーズかどうか
-  static float dbgOilPressure = 0.0f;  // デモ用油圧
-  static float dbgWaterTemp = 20.0f;   // デモ用水温
-  static float dbgOilTemp = 20.0f;     // デモ用油温
+  // デモ用電圧とシーケンス管理変数
+  static float demoVoltage = 0.0f;    // 現在のデモ電圧
+  static unsigned long demoTick = 0;  // 更新タイマ
+  static bool inPattern = false;      // 0→5V上昇後のパターンフェーズか
+  static size_t patternIndex = 0;     // パターンインデックス
+  // デモモードでの電圧変化パターン
+  // 5V到達後に 5,0,5,4,3,2,1,0,1,2,3,4,5,0,0,2.5 と0.5秒ごとに変化させる
+  constexpr float patternSeq[] = {5.0f, 0.0f, 5.0f, 4.0f, 3.0f, 2.0f, 1.0f, 0.0f,
+                                  1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 0.0f, 0.0f, 2.5f};
 
   unsigned long now = millis();
 
   // デモモード処理
-  if (DEMO_MODE_ENABLED && demoActive)
+  if (DEMO_MODE_ENABLED)
   {
-    if (dbgStart == 0)
+    // 上昇フェーズ
+    if (!inPattern)
     {
-      dbgStart = now;
-      dbgTick = now;
-    }
-
-    if (throttlePhase)
-    {
-      // 開始1秒間だけ油圧を高めにする
-      if (now - dbgStart < 1000)
+      if (now - demoTick >= 1000)
       {
-        dbgOilPressure = 8.0f;
-      }
-      else
-      {
-        throttlePhase = false;
-        dbgOilPressure = 0.0f;
-        dbgTick = now;
+        demoVoltage += 0.25f;
+        if (demoVoltage >= 5.0f)
+        {
+          demoVoltage = 5.0f;
+          inPattern = true;
+          patternIndex = 0;
+        }
+        demoTick = now;
       }
     }
     else
     {
-      // 1秒ごとに油圧+1、水温・油温+10
-      if (now - dbgTick >= 1000)
+      // パターンフェーズ
+      if (now - demoTick >= 500)
       {
-        if (dbgOilPressure < 12.0f) dbgOilPressure += 1.0f;
-        dbgWaterTemp += 10.0f;
-        dbgOilTemp += 10.0f;
-        dbgTick = now;
+        demoVoltage = patternSeq[patternIndex];
+        patternIndex++;
+        if (patternIndex >= sizeof(patternSeq) / sizeof(patternSeq[0]))
+        {
+          patternIndex = 0;
+          inPattern = false;
+          demoVoltage = 0.0f;
+        }
+        demoTick = now;
       }
     }
 
-    oilPressureSamples[oilPressureIndex] = dbgOilPressure;
-    updateSampleBuffer(dbgWaterTemp, waterTemperatureSamples, waterTempIndex, isFirstWaterTempSample);
-    updateSampleBuffer(dbgOilTemp, oilTemperatureSamples, oilTempIndex, isFirstOilTempSample);
+    float demoPressure = convertVoltageToOilPressure(demoVoltage);
+    // 温度センサは電圧変化と逆の振る舞いにする
+    float demoTemp = convertVoltageToTemp(SUPPLY_VOLTAGE - demoVoltage);
 
-    // 閾値を超えたらデモを終了
-    if (dbgOilPressure >= 12.0f || dbgWaterTemp >= 130.0f || dbgOilTemp >= 130.0f)
-    {
-      demoActive = false;
-    }
+    oilPressureSamples[oilPressureIndex] = demoPressure;
+    updateSampleBuffer(demoTemp, waterTemperatureSamples, waterTempIndex, isFirstWaterTempSample);
+    updateSampleBuffer(demoTemp, oilTemperatureSamples, oilTempIndex, isFirstOilTempSample);
 
-    Serial.printf("[DEMO] OilP:%.2f WaterT:%.1f OilT:%.1f\n", dbgOilPressure, dbgWaterTemp, dbgOilTemp);
+    Serial.printf("[DEMO] V:%.2f P:%.2f T:%.1f\n", demoVoltage, demoPressure, demoTemp);
 
     oilPressureIndex = (oilPressureIndex + 1) % PRESSURE_SAMPLE_SIZE;
     return;
