@@ -191,6 +191,7 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
   char errorLine2[8];
   bool isErrorText = false;
   // 文字列比較は strcmp を使用する
+
   if (strcmp(unit, "x100kPa") == 0 && value >= 11.0f)
   {
     // 12bar 以上のショートエラー表示

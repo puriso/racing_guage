@@ -10,4 +10,4 @@ constexpr uint16_t ALS_MEASUREMENT_INTERVAL_MS = 8000;
 
 void updateBacklightLevel();
 
-#endif // BACKLIGHT_H
+#endif  // BACKLIGHT_H

@@ -4,4 +4,4 @@
 // FPS表示を更新したかどうかを返す
 bool drawFpsOverlay();
 
-#endif // FPS_DISPLAY_H
+#endif  // FPS_DISPLAY_H

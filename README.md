@@ -1,4 +1,4 @@
-# M5Stack CoreS3 Multi-Gauge  
+# M5Stack CoreS3 Multi-Gauge
 # M5Stack CoreS3 マルチメーター
 
 [![PlatformIO Build](https://github.com/puriso/racing_guage/actions/workflows/pio-build.yml/badge.svg?branch=main)](https://github.com/puriso/racing_guage/actions/workflows/pio-build.yml)
@@ -25,6 +25,7 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 - 各種設定は `include/config.h` の定数で変更可能
 - 水温・油温は500ms間隔で取得し、2サンプル平均を1秒ごとに更新
 - 周囲光センサーによる自動調光（デフォルト無効）
+- デモモードでセンサー無しでも動作確認可能
 
 ### ハードウェア構成
 | モジュール       | 型番 / 仕様                       | 備考 |
@@ -135,6 +136,7 @@ Perfect for vintage cars lacking modern instrumentation or for lightweight track
 - Most settings are in `include/config.h`
 - Water and oil temperatures are sampled every 500 ms and averaged over 2 samples (updated every second)
 - Automatic backlight brightness using the ambient light sensor (disabled by default)
+- Demo mode lets you test without sensors connected
 
 ### Hardware Configuration
 | Module           | Part / Spec                    | Notes                   |
