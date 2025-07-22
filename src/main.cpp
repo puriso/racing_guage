@@ -19,7 +19,11 @@ static void printSensorDebugInfo()
   float pressure = calculateAverage(oilPressureSamples);
   float water = calculateAverage(waterTemperatureSamples);
   float oil = calculateAverage(oilTemperatureSamples);
-  Serial.printf("Oil.P: %.2f bar, Water.T: %.1f C, Oil.T: %.1f C\n", pressure, water, oil);
+  float pressureV = calculateAverage(oilPressureVoltageSamples);
+  float waterV = calculateAverage(waterTempVoltageSamples);
+  float oilV = calculateAverage(oilTempVoltageSamples);
+  Serial.printf("Oil.P: %.2f bar (%.2f V), Water.T: %.1f C (%.2f V), Oil.T: %.1f C (%.2f V)\n", pressure, pressureV, water,
+                waterV, oil, oilV);
 }
 
 // ────────────────────── setup() ──────────────────────
