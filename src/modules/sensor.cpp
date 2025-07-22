@@ -108,7 +108,10 @@ void acquireSensorData()
   static unsigned long demoTick = 0;  // 更新タイマ
   static bool inPattern = false;      // 0→5V上昇後のパターンフェーズか
   static size_t patternIndex = 0;     // パターンインデックス
-  constexpr float patternSeq[] = {5.0f, 0.0f, 5.0f, 4.0f, 3.0f, 2.0f, 1.0f, 0.0f};
+  // デモモードでの電圧変化パターン
+  // 5V到達後に 5,0,5,4,3,2,1,0,1,2,3,4,5,0,0,2.5 と0.5秒ごとに変化させる
+  constexpr float patternSeq[] = {5.0f, 0.0f, 5.0f, 4.0f, 3.0f, 2.0f, 1.0f, 0.0f,
+                                  1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 0.0f, 0.0f, 2.5f};
 
   unsigned long now = millis();
 
@@ -148,7 +151,8 @@ void acquireSensorData()
     }
 
     float demoPressure = convertVoltageToOilPressure(demoVoltage);
-    float demoTemp = convertVoltageToTemp(demoVoltage);
+    // 温度センサは電圧変化と逆の振る舞いにする
+    float demoTemp = convertVoltageToTemp(SUPPLY_VOLTAGE - demoVoltage);
 
     oilPressureSamples[oilPressureIndex] = demoPressure;
     updateSampleBuffer(demoTemp, waterTemperatureSamples, waterTempIndex, isFirstWaterTempSample);
