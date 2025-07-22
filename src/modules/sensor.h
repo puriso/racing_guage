@@ -3,6 +3,7 @@
 
 #include <Adafruit_ADS1X15.h>
 #include <stdint.h>
+
 #include "config.h"
 
 extern Adafruit_ADS1015 adsConverter;
@@ -17,11 +18,12 @@ void acquireSensorData();
 template <size_t N>
 inline float calculateAverage(const float (&values)[N])
 {
-    float sum = 0.0f;
-    for (size_t i = 0; i < N; ++i) {
-        sum += values[i];
-    }
-    return sum / static_cast<float>(N);
+  float sum = 0.0f;
+  for (size_t i = 0; i < N; ++i)
+  {
+    sum += values[i];
+  }
+  return sum / static_cast<float>(N);
 }
 
-#endif // SENSOR_H
+#endif  // SENSOR_H
