@@ -122,7 +122,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg, float oilTemp, i
       mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
     }
     bool useDecimal = pressureAvg < 9.95f;
-    drawFillArcMeter(mainCanvas, pressureAvg, 0.0f, MAX_OIL_PRESSURE_METER, 8.0f, COLOR_RED, "BAR", "OIL.P",
+    drawFillArcMeter(mainCanvas, pressureAvg, 0.0f, MAX_OIL_PRESSURE_METER, 8.0f, COLOR_RED, "x100kPa", "OIL.P",
                      recordedMaxOilPressure, prevPressureValue, 0.5f, useDecimal, 0, 60, !pressureGaugeInitialized);
     pressureGaugeInitialized = true;
     displayCache.pressureAvg = pressureAvg;
