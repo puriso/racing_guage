@@ -29,8 +29,7 @@ constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
 
 // ────────────────────── 変換定数 ──────────────────────
 constexpr float SUPPLY_VOLTAGE = 5.0f;
-// 0.3sq ケーブル往復14mで生じる約0.137Vの降下を補正
-constexpr float VOLTAGE_DROP = 0.137f;
+// 電圧降下は config で設定
 constexpr float CORRECTION_FACTOR = SUPPLY_VOLTAGE / (SUPPLY_VOLTAGE - VOLTAGE_DROP);
 constexpr float THERMISTOR_R25 = 10000.0f;
 constexpr float THERMISTOR_B_CONSTANT = 3380.0f;

@@ -14,6 +14,10 @@ constexpr bool SENSOR_WATER_TEMP_PRESENT = true;
 constexpr bool SENSOR_OIL_TEMP_PRESENT = true;
 constexpr bool SENSOR_AMBIENT_LIGHT_PRESENT = false;  // ALS を無効化
 
+// ── 電圧降下補正 ──
+// 0.3sq ケーブル往復14mで約0.137Vの降下を想定
+constexpr float VOLTAGE_DROP = 0.137f;
+
 // ── 色設定 (16 bit) ──
 // RGB888 から 565 形式へ変換する constexpr 関数
 constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
