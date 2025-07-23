@@ -26,8 +26,6 @@ constexpr uint16_t ADC_SETTLING_US = 50;
 // 温度サンプリング間隔 [ms]
 // 500msごとに取得し、10サンプルで約5秒平均となる
 constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
-
-// ────────────────────── 変換定数 ──────────────────────
 constexpr float SUPPLY_VOLTAGE = 5.0f;
 // 電圧降下は config で設定
 constexpr float CORRECTION_FACTOR = SUPPLY_VOLTAGE / (SUPPLY_VOLTAGE - VOLTAGE_DROP);
@@ -37,23 +35,26 @@ constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;  // 273.16 + 25
 constexpr float SERIES_REFERENCE_RES = 10000.0f;
 
 // ────────────────────── ユーティリティ ──────────────────────
-static float convertAdcToVoltage(int16_t rawAdc) { return (rawAdc * 6.144f) / 2047.0f; }
+static auto convertAdcToVoltage(int16_t rawAdc) -> float { return (rawAdc * 6.144F) / 2047.0F; }
 
-static float convertVoltageToOilPressure(float voltage)
+static auto convertVoltageToOilPressure(float voltage) -> float
 {
   voltage *= CORRECTION_FACTOR;
   // 電源電圧近くまで上昇してもそのまま変換し、
   // 12bar 以上かどうかは呼び出し側で判断する
 
   // センサー実測式に基づき圧力へ変換
-  return (voltage > 0.5f) ? 2.5f * (voltage - 0.5f) : 0.0f;
+  return (voltage > 0.5F) ? 2.5F * (voltage - 0.5F) : 0.0F;
 }
 
-static float convertVoltageToTemp(float voltage)
+static auto convertVoltageToTemp(float voltage) -> float
 {
   voltage *= CORRECTION_FACTOR;
   // 電源電圧より高い/等しい電圧は異常値として捨てる
-  if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
+  if (voltage <= 0.0F || voltage >= SUPPLY_VOLTAGE)
+  {
+    return 200.0F;
+  }
 
   // 分圧式よりサーミスタ抵抗値を算出
   // R = Rref * (V / (Vcc - V))  (サーミスタがGND側の場合)
@@ -63,11 +64,11 @@ static float convertVoltageToTemp(float voltage)
   float kelvin =
       THERMISTOR_B_CONSTANT / (log(resistance / THERMISTOR_R25) + THERMISTOR_B_CONSTANT / ABSOLUTE_TEMPERATURE_25);
 
-  return std::isnan(kelvin) ? 200.0f : kelvin - 273.16f;
+  return std::isnan(kelvin) ? 200.0F : kelvin - 273.16F;
 }
 
 // ────────────────────── ADC 読み取り ──────────────────────
-static int16_t readAdcWithSettling(uint8_t ch)
+static auto readAdcWithSettling(uint8_t ch) -> int16_t
 {
   adsConverter.readADC_SingleEnded(ch);  // ダミー変換
   delayMicroseconds(ADC_SETTLING_US);    // セトリング待ち
@@ -76,7 +77,7 @@ static int16_t readAdcWithSettling(uint8_t ch)
 
 // ────────────────────── 温度読み取り ──────────────────────
 // 指定チャンネルから温度を取得して摂氏に変換
-static float readTemperatureChannel(uint8_t ch)
+static auto readTemperatureChannel(uint8_t ch) -> float
 {
   int16_t raw = readAdcWithSettling(ch);
   return convertVoltageToTemp(convertAdcToVoltage(raw));
@@ -89,7 +90,10 @@ static void updateSampleBuffer(float value, float (&buffer)[N], int &index, bool
 {
   if (first)
   {
-    for (float &v : buffer) v = value;
+    for (float &v : buffer)
+    {
+      v = value;
+    }
     index = 1 % N;  // 初期化後は 1 番目から開始
     first = false;
   }
@@ -108,14 +112,14 @@ void acquireSensorData()
 
   // デモモード用の変数
   // デモ用電圧とシーケンス管理変数
-  static float demoVoltage = 0.0f;    // 現在のデモ電圧
+  static float demoVoltage = 0.0F;    // 現在のデモ電圧
   static unsigned long demoTick = 0;  // 更新タイマ
   static bool inPattern = false;      // 0→5V上昇後のパターンフェーズか
   static size_t patternIndex = 0;     // パターンインデックス
   // デモモードでの電圧変化パターン
   // 5V到達後に 5,0,5,4,3,2,1,0,1,2,3,4,5,0,0,2.5 と0.5秒ごとに変化させる
-  constexpr float patternSeq[] = {5.0f, 0.0f, 5.0f, 4.0f, 3.0f, 2.0f, 1.0f, 0.0f,
-                                  1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 0.0f, 0.0f, 2.5f};
+  constexpr float patternSeq[] = {5.0F, 0.0F, 5.0F, 4.0F, 3.0F, 2.0F, 1.0F, 0.0F,
+                                  1.0F, 2.0F, 3.0F, 4.0F, 5.0F, 0.0F, 0.0F, 2.5F};
 
   unsigned long now = millis();
 
@@ -127,10 +131,10 @@ void acquireSensorData()
     {
       if (now - demoTick >= 1000)
       {
-        demoVoltage += 0.25f;
-        if (demoVoltage >= 5.0f)
+        demoVoltage += 0.25F;
+        if (demoVoltage >= 5.0F)
         {
-          demoVoltage = 5.0f;
+          demoVoltage = 5.0F;
           inPattern = true;
           patternIndex = 0;
         }
@@ -148,7 +152,7 @@ void acquireSensorData()
         {
           patternIndex = 0;
           inPattern = false;
-          demoVoltage = 0.0f;
+          demoVoltage = 0.0F;
         }
         demoTick = now;
       }
@@ -177,7 +181,7 @@ void acquireSensorData()
   }
   else
   {
-    oilPressureSamples[oilPressureIndex] = 0.0f;
+    oilPressureSamples[oilPressureIndex] = 0.0F;
   }
   oilPressureIndex = (oilPressureIndex + 1) % PRESSURE_SAMPLE_SIZE;
 

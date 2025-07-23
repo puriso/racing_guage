@@ -15,8 +15,8 @@ M5Canvas mainCanvas(&display);
 static bool pressureGaugeInitialized = false;
 static bool waterGaugeInitialized = false;
 
-float recordedMaxOilPressure = 0.0f;
-float recordedMaxWaterTemp = 0.0f;
+float recordedMaxOilPressure = 0.0F;
+float recordedMaxWaterTemp = 0.0F;
 int recordedMaxOilTempTop = 0;
 
 // 前回描画したゲージ値
@@ -39,16 +39,19 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
   constexpr int MAX_TEMP = 130;
   constexpr int ALERT_TEMP = 120;
 
-  constexpr int X = 20, Y = 15, W = 210, H = 20;
+  constexpr int X = 20;
+  constexpr int Y = 15;
+  constexpr int W = 210;
+  constexpr int H = 20;
   constexpr float RANGE = MAX_TEMP - MIN_TEMP;
 
   canvas.fillRect(X + 1, Y + 1, W - 2, H - 2, 0x18E3);
 
   float drawTemp = oilTemp;
-  if (drawTemp >= 199.0f)
+  if (drawTemp >= 199.0F)
   {
     // 異常値の場合はバーを 0 として扱う
-    drawTemp = 0.0f;
+    drawTemp = 0.0F;
   }
 
   if (drawTemp >= MIN_TEMP)
@@ -76,7 +79,7 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
   canvas.printf("OIL.T / Celsius,  MAX:%03d", maxOilTemp);
   // snprintf でバッファサイズを指定し、
   // 安全に文字列化する
-  if (oilTemp >= 199.0f)
+  if (oilTemp >= 199.0F)
   {
     // 199℃以上は "Disconnection" と "Error" を小さなフォントで表示
     canvas.setFont(&fonts::Font0);
@@ -95,21 +98,22 @@ void drawOilTemperatureTopBar(M5Canvas& canvas, float oilTemp, int maxOilTemp)
 // ────────────────────── 画面更新＋ログ ──────────────────────
 void renderDisplayAndLog(float pressureAvg, float waterTempAvg, float oilTemp, int16_t maxOilTemp)
 {
-  const int TOPBAR_Y = 0, TOPBAR_H = 50;
+  const int TOPBAR_Y = 0;
+  const int TOPBAR_H = 50;
   const int GAUGE_H = 170;
 
   // 温度は0.1度以上、油圧は0.05以上変化したら更新する
-  bool oilChanged = std::isnan(displayCache.oilTemp) || fabs(oilTemp - displayCache.oilTemp) >= 0.1f ||
+  bool oilChanged = std::isnan(displayCache.oilTemp) || fabs(oilTemp - displayCache.oilTemp) >= 0.1F ||
                     (maxOilTemp != displayCache.maxOilTemp);
-  bool pressureChanged = std::isnan(displayCache.pressureAvg) || fabs(pressureAvg - displayCache.pressureAvg) >= 0.05f;
-  bool waterChanged = std::isnan(displayCache.waterTempAvg) || fabs(waterTempAvg - displayCache.waterTempAvg) >= 0.1f;
+  bool pressureChanged = std::isnan(displayCache.pressureAvg) || fabs(pressureAvg - displayCache.pressureAvg) >= 0.05F;
+  bool waterChanged = std::isnan(displayCache.waterTempAvg) || fabs(waterTempAvg - displayCache.waterTempAvg) >= 0.1F;
 
   mainCanvas.setTextColor(COLOR_WHITE);
 
   if (oilChanged)
   {
     mainCanvas.fillRect(0, TOPBAR_Y, LCD_WIDTH, TOPBAR_H, COLOR_BLACK);
-    if (oilTemp > maxOilTemp) maxOilTemp = oilTemp;
+    maxOilTemp = std::max<float>(oilTemp, maxOilTemp);
     drawOilTemperatureTopBar(mainCanvas, oilTemp, maxOilTemp);
     displayCache.oilTemp = oilTemp;
     displayCache.maxOilTemp = maxOilTemp;
@@ -121,7 +125,7 @@ void renderDisplayAndLog(float pressureAvg, float waterTempAvg, float oilTemp, i
     {
       mainCanvas.fillRect(0, 60, 160, GAUGE_H, COLOR_BLACK);
     }
-    bool useDecimal = pressureAvg < 9.95f;
+    bool useDecimal = pressureAvg < 9.95F;
     drawFillArcMeter(mainCanvas, pressureAvg, 0.0f, MAX_OIL_PRESSURE_METER, 8.0f, COLOR_RED, "x100kPa", "OIL.P",
                      recordedMaxOilPressure, prevPressureValue, 0.5f, useDecimal, 0, 60, !pressureGaugeInitialized);
     pressureGaugeInitialized = true;
@@ -162,12 +166,21 @@ void updateGauges()
   float targetWaterTemp = calculateAverage(waterTemperatureSamples);
   float targetOilTemp = calculateAverage(oilTemperatureSamples);
 
-  if (std::isnan(smoothWaterTemp)) smoothWaterTemp = targetWaterTemp;
-  if (std::isnan(smoothOilTemp)) smoothOilTemp = targetOilTemp;
-  if (std::isnan(smoothOilPressure)) smoothOilPressure = pressureAvg;
+  if (std::isnan(smoothWaterTemp))
+  {
+    smoothWaterTemp = targetWaterTemp;
+  }
+  if (std::isnan(smoothOilTemp))
+  {
+    smoothOilTemp = targetOilTemp;
+  }
+  if (std::isnan(smoothOilPressure))
+  {
+    smoothOilPressure = pressureAvg;
+  }
 
-  smoothWaterTemp += 0.1f * (targetWaterTemp - smoothWaterTemp);
-  smoothOilTemp += 0.1f * (targetOilTemp - smoothOilTemp);
+  smoothWaterTemp += 0.1F * (targetWaterTemp - smoothWaterTemp);
+  smoothOilTemp += 0.1F * (targetOilTemp - smoothOilTemp);
   smoothOilPressure += OIL_PRESSURE_SMOOTHING_ALPHA * (pressureAvg - smoothOilPressure);
 
   float oilTempValue = smoothOilTemp;
@@ -175,12 +188,12 @@ void updateGauges()
   if (!SENSOR_OIL_TEMP_PRESENT)
   {
     // センサーが無い場合は常に 0 表示
-    oilTempValue = 0.0f;
+    oilTempValue = 0.0F;
   }
 
   recordedMaxOilPressure = std::max(recordedMaxOilPressure, pressureAvg);
   recordedMaxWaterTemp = std::max(recordedMaxWaterTemp, smoothWaterTemp);
-  if (targetOilTemp < 199.0f)
+  if (targetOilTemp < 199.0F)
   {
     recordedMaxOilTempTop = std::max(recordedMaxOilTempTop, static_cast<int>(targetOilTemp));
   }

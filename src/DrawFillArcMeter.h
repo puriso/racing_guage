@@ -17,7 +17,7 @@ static inline T clampValue(T val, T low, T high)
   return val;
 }
 
-void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxValue, float threshold,
+void drawFillArcMeter(M5Canvas /*unused*/ &canvas, float value, float minValue, float maxValue, float threshold,
                       uint16_t overThresholdColor, const char *unit, const char *label, float &maxRecordedValue,
                       float &previousValue,  // 前回描画した値
                       float tickStep,        // 目盛の間隔（細かい目盛り）
@@ -150,10 +150,10 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
       int innerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 10) : (RADIUS - ARC_WIDTH - 8);
       int outerRadius = isMajorTick ? (RADIUS - ARC_WIDTH - 5) : (RADIUS - ARC_WIDTH - 7);
 
-      int lineX1 = CENTER_X_CORRECTED + (cos(rad) * innerRadius);
-      int lineY1 = CENTER_Y_CORRECTED - (sin(rad) * innerRadius);
-      int lineX2 = CENTER_X_CORRECTED + (cos(rad) * outerRadius);
-      int lineY2 = CENTER_Y_CORRECTED - (sin(rad) * outerRadius);
+      int lineX1 = CENTER_X_CORRECTED + (cosf(rad) * innerRadius);
+      int lineY1 = CENTER_Y_CORRECTED - (sinf(rad) * innerRadius);
+      int lineX2 = CENTER_X_CORRECTED + (cosf(rad) * outerRadius);
+      int lineY2 = CENTER_Y_CORRECTED - (sinf(rad) * outerRadius);
 
       canvas.drawLine(lineX1, lineY1, lineX2, lineY2, COLOR_WHITE);
 
@@ -161,8 +161,8 @@ void drawFillArcMeter(M5Canvas &canvas, float value, float minValue, float maxVa
 
       if (drawLabel)
       {
-        int labelX = CENTER_X_CORRECTED + (cos(rad) * (RADIUS - ARC_WIDTH - 15));
-        int labelY = CENTER_Y_CORRECTED - (sin(rad) * (RADIUS - ARC_WIDTH - 15));
+        int labelX = CENTER_X_CORRECTED + (cosf(rad) * (RADIUS - ARC_WIDTH - 15));
+        int labelY = CENTER_Y_CORRECTED - (sinf(rad) * (RADIUS - ARC_WIDTH - 15));
 
         char labelText[6];
         snprintf(labelText, sizeof(labelText), "%.0f", scaledValue);
