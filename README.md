@@ -1,5 +1,5 @@
-#M5Stack CoreS3 Multi - Gauge
-#M5Stack CoreS3 マルチメーター
+# M5Stack CoreS3 Multi-Gauge
+# M5Stack CoreS3 マルチメーター
 
 [![PlatformIO Build](https://github.com/puriso/racing_gauge/actions/workflows/pio-build.yml/badge.svg?branch=main)](https://github.com/puriso/racing_gauge/actions/workflows/pio-build.yml)
 
@@ -45,15 +45,11 @@ A compact digital dashboard driven by **M5Stack CoreS3 + ADS1015** that displays
 ```mermaid
 graph TD
     subgraph "M5Stack CoreS3"
-        V5{
-{5V}}
-        GND{
-  {
-    GND
-  }}
+        V5{{5V}}
+        GND{{GND}}
     end
-
     ADS[ADS1015]
+
 
     V5 --> ADS
     GND --> ADS
