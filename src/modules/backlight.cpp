@@ -14,7 +14,7 @@ int luxSampleIndex = 0;  // 次に書き込むインデックス
 
 // ────────────────────── 輝度測定 ──────────────────────
 // バックライトを消して輝度を測定
-static uint16_t measureLuxWithoutBacklight()
+static auto measureLuxWithoutBacklight() -> uint16_t
 {
   uint8_t prevBrightness = display.getBrightness();
   display.setBrightness(0);
@@ -26,7 +26,7 @@ static uint16_t measureLuxWithoutBacklight()
 
 // ────────────────────── 中央値計算 ──────────────────────
 // サンプル配列から中央値を計算する
-static uint16_t calculateMedian(const uint16_t *samples)
+static auto calculateMedian(const uint16_t *samples) -> uint16_t
 {
   uint16_t sortedSamples[MEDIAN_BUFFER_SIZE];
   memcpy(sortedSamples, samples, sizeof(sortedSamples));

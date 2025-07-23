@@ -2,6 +2,6 @@
 #define FPS_DISPLAY_H
 
 // FPS表示を更新したかどうかを返す
-bool drawFpsOverlay();
+auto drawFpsOverlay() -> bool;
 
 #endif  // FPS_DISPLAY_H

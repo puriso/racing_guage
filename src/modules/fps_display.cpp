@@ -9,7 +9,7 @@ static bool fpsLabelDrawn = false;
 static unsigned long lastFpsDrawTime = 0;
 
 // ────────────────────── FPS表示 ──────────────────────
-bool drawFpsOverlay()
+auto drawFpsOverlay() -> bool
 {
   mainCanvas.setFont(&fonts::Font0);
   mainCanvas.setTextSize(0);

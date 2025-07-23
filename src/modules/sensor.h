@@ -16,9 +16,9 @@ void acquireSensorData();
 
 // 平均計算テンプレート
 template <size_t N>
-inline float calculateAverage(const float (&values)[N])
+inline auto calculateAverage(const float (&values)[N]) -> float
 {
-  float sum = 0.0f;
+  float sum = 0.0F;
   for (size_t i = 0; i < N; ++i)
   {
     sum += values[i];
