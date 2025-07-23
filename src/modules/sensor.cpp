@@ -26,19 +26,20 @@ constexpr uint16_t ADC_SETTLING_US = 50;
 // 温度サンプリング間隔 [ms]
 // 500msごとに取得し、10サンプルで約5秒平均となる
 constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
-
-// ────────────────────── 変換定数 ──────────────────────
-constexpr float SUPPLY_VOLTAGE = 5.0F;
-constexpr float THERMISTOR_R25 = 10000.0F;
-constexpr float THERMISTOR_B_CONSTANT = 3380.0F;
-constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16F;  // 273.16 + 25
-constexpr float SERIES_REFERENCE_RES = 10000.0F;
+constexpr float SUPPLY_VOLTAGE = 5.0f;
+// 電圧降下は config で設定
+constexpr float CORRECTION_FACTOR = SUPPLY_VOLTAGE / (SUPPLY_VOLTAGE - VOLTAGE_DROP);
+constexpr float THERMISTOR_R25 = 10000.0f;
+constexpr float THERMISTOR_B_CONSTANT = 3380.0f;
+constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;  // 273.16 + 25
+constexpr float SERIES_REFERENCE_RES = 10000.0f;
 
 // ────────────────────── ユーティリティ ──────────────────────
 static auto convertAdcToVoltage(int16_t rawAdc) -> float { return (rawAdc * 6.144F) / 2047.0F; }
 
 static auto convertVoltageToOilPressure(float voltage) -> float
 {
+  voltage *= CORRECTION_FACTOR;
   // 電源電圧近くまで上昇してもそのまま変換し、
   // 12bar 以上かどうかは呼び出し側で判断する
 
@@ -48,6 +49,7 @@ static auto convertVoltageToOilPressure(float voltage) -> float
 
 static auto convertVoltageToTemp(float voltage) -> float
 {
+  voltage *= CORRECTION_FACTOR;
   // 電源電圧より高い/等しい電圧は異常値として捨てる
   if (voltage <= 0.0F || voltage >= SUPPLY_VOLTAGE)
   {
