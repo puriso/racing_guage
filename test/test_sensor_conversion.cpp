@@ -15,8 +15,8 @@ void test_convert_adc_to_voltage()
 void test_convert_voltage_to_oil_pressure()
 {
   float result = convertVoltageToOilPressure(1.0f);
-  // 1.0V は約1.25barになる
-  TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.25f, result);
+  // 電圧降下補正後は約1.32barになる
+  TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.32f, result);
 
   result = convertVoltageToOilPressure(0.25f);
   // 0.5V 未満は0として扱う
@@ -27,12 +27,12 @@ void test_convert_voltage_to_oil_pressure()
 void test_convert_voltage_to_temp()
 {
   float result = convertVoltageToTemp(2.5f);
-  // 2.5V は約25℃になる
-  TEST_ASSERT_FLOAT_WITHIN(0.1f, 25.0f, result);
+  // 電圧降下補正後は約23.5℃になる
+  TEST_ASSERT_FLOAT_WITHIN(0.1f, 23.5f, result);
 
   result = convertVoltageToTemp(1.0f);
-  // 1.0V は約66.5℃になる
-  TEST_ASSERT_FLOAT_WITHIN(0.1f, 66.54f, result);
+  // 1.0V は約65.4℃になる
+  TEST_ASSERT_FLOAT_WITHIN(0.1f, 65.36f, result);
 }
 
 // 平均計算のテスト

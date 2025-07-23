@@ -29,6 +29,8 @@ constexpr uint16_t TEMP_SAMPLE_INTERVAL_MS = 500;
 
 // ────────────────────── 変換定数 ──────────────────────
 constexpr float SUPPLY_VOLTAGE = 5.0f;
+// 電圧降下は config で設定
+constexpr float CORRECTION_FACTOR = SUPPLY_VOLTAGE / (SUPPLY_VOLTAGE - VOLTAGE_DROP);
 constexpr float THERMISTOR_R25 = 10000.0f;
 constexpr float THERMISTOR_B_CONSTANT = 3380.0f;
 constexpr float ABSOLUTE_TEMPERATURE_25 = 298.16f;  // 273.16 + 25
@@ -39,6 +41,7 @@ static float convertAdcToVoltage(int16_t rawAdc) { return (rawAdc * 6.144f) / 20
 
 static float convertVoltageToOilPressure(float voltage)
 {
+  voltage *= CORRECTION_FACTOR;
   // 電源電圧近くまで上昇してもそのまま変換し、
   // 12bar 以上かどうかは呼び出し側で判断する
 
@@ -48,6 +51,7 @@ static float convertVoltageToOilPressure(float voltage)
 
 static float convertVoltageToTemp(float voltage)
 {
+  voltage *= CORRECTION_FACTOR;
   // 電源電圧より高い/等しい電圧は異常値として捨てる
   if (voltage <= 0.0f || voltage >= SUPPLY_VOLTAGE) return 200.0f;
 
