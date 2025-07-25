@@ -5,7 +5,7 @@
 
 // ────────────────────── 設定 ──────────────────────
 // デバッグ用メッセージ表示の有無
-constexpr bool DEBUG_MODE_ENABLED = true;
+constexpr bool DEBUG_MODE_ENABLED = false;
 
 // デモモードを有効にするかどうか
 constexpr bool DEMO_MODE_ENABLED = false;
