@@ -41,6 +41,8 @@ constexpr int DISPLAY_COLOR_DEPTH = 16;
 // ── 油圧の表示設定 ──
 // 数値表示の上限 (バー単位)
 constexpr float MAX_OIL_PRESSURE_DISPLAY = 15.0f;
+// メーター目盛の下限
+constexpr float MIN_OIL_PRESSURE_METER = 4.0f;
 // メーター目盛の上限
 constexpr float MAX_OIL_PRESSURE_METER = 10.0f;
 // 0.25bar 以下なら接続エラーとして扱う閾値
